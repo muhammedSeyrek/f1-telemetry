@@ -78,7 +78,9 @@ func (c *Client) GetPitStops(season, round string) ([]models.PitStop, *models.Ra
 		return nil, nil, err
 	}
 	if len(resp.MRData.RaceTable.Races) == 0 {
-		return nil, nil, fmt.Errorf("pit stop verisi bulunamadı")
+		return nil, nil, fmt.Errorf(
+			"pit stop verisi bulunamadı\n  💡 Jolpica API pit stop datasını yarıştan sonra pazartesi yükler\n     Geçmiş veri için dene: f1 pit 2024 1",
+		)
 	}
 	race := &resp.MRData.RaceTable.Races[0]
 	return race.PitStops, race, nil
@@ -145,4 +147,55 @@ func (c *Client) GetQualifying(season, round string) ([]models.QualifyingResult,
 
 func (c *Client) GetLastRaceResult() ([]models.RaceResult, *models.Race, error) {
 	return c.GetRaceResult("current", "last")
+}
+
+// --- Sezon yarışlarını kazananlarıyla getir ---
+func (c *Client) GetScheduleWithResults(season string) ([]models.Race, error) {
+	url := fmt.Sprintf("%s/%s/results/1.json?limit=100", c.baseURL, season)
+	resp, err := c.fetch(url)
+	if err != nil {
+		return nil, err
+	}
+	// Kazanılan yarışları map'e al
+	winMap := map[string]models.Race{}
+	for _, r := range resp.MRData.RaceTable.Races {
+		winMap[r.Round] = r
+	}
+
+	// Tam takvimi al
+	allRaces, err := c.GetSchedule(season)
+	if err != nil {
+		return nil, err
+	}
+
+	// Birleştir
+	for i, r := range allRaces {
+		if won, ok := winMap[r.Round]; ok {
+			allRaces[i].Results = won.Results
+		}
+	}
+	return allRaces, nil
+}
+
+// Sürücünün tüm sezondaki sonuçları
+func (c *Client) GetDriverSeasonResults(season, driverID string) ([]models.Race, error) {
+	url := fmt.Sprintf("%s/%s/drivers/%s/results.json?limit=30", c.baseURL, season, driverID)
+	resp, err := c.fetch(url)
+	if err != nil {
+		return nil, err
+	}
+	return resp.MRData.RaceTable.Races, nil
+}
+
+// İki sürücünün tüm sezondaki sonuçları
+func (c *Client) GetTwoDriversSeasonResults(season, d1, d2 string) ([]models.Race, []models.Race, error) {
+	r1, err := c.GetDriverSeasonResults(season, d1)
+	if err != nil {
+		return nil, nil, err
+	}
+	r2, err := c.GetDriverSeasonResults(season, d2)
+	if err != nil {
+		return nil, nil, err
+	}
+	return r1, r2, nil
 }
