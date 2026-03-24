@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>F1 Telemetri</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark">F1</div>
+      <div class="logo-text">
+        <span class="logo-title">TELEMETRI</span>
+        <span class="logo-sub">DATA DASHBOARD</span>
+      </div>
+    </div>
+    <div class="topbar-center">
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="historic" onclick="setMode('historic')">
+          <span class="btn-icon">▶</span> GEÇMİŞ
+        </button>
+        <button class="mode-btn" data-mode="live" onclick="setMode('live')">
+          <span class="live-dot"></span> CANLI
+        </button>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill" id="apiStatus">
+        <span class="status-dot green"></span>
+        <span>API BAĞLI</span>
+      </div>
+      <div class="season-badge" id="seasonBadge">2024</div>
+    </div>
+  </header>
+
+  <!-- MAIN LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-section" id="historicNav">
+        <div class="sidebar-label">GEÇMİŞ VERİLER</div>
+        <button class="nav-item active" onclick="showView('race-results')">
+          <span class="nav-icon">◈</span>
+          <span>Yarış Sonucu</span>
+        </button>
+        <button class="nav-item" onclick="showView('season-dashboard')">
+          <span class="nav-icon">◈</span>
+          <span>Sezon Özeti</span>
+        </button>
+        <button class="nav-item" onclick="showView('driver-standings')">
+          <span class="nav-icon">◈</span>
+          <span>Sürücü Sıralaması</span>
+        </button>
+        <button class="nav-item" onclick="showView('constructor-standings')">
+          <span class="nav-icon">◈</span>
+          <span>Konstruktör Sıralaması</span>
+        </button>
+        <button class="nav-item" onclick="showView('qualifying')">
+          <span class="nav-icon">◈</span>
+          <span>Sıralama Turları</span>
+        </button>
+        <button class="nav-item" onclick="showView('pit-stops')">
+          <span class="nav-icon">◈</span>
+          <span>Pit Stop Analizi</span>
+        </button>
+        <button class="nav-item" onclick="showView('driver-compare')">
+          <span class="nav-icon">◈</span>
+          <span>Sürücü Karşılaştır</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section hidden" id="liveNav">
+        <div class="sidebar-label">CANLI MOD</div>
+        <button class="nav-item active" onclick="showView('timing-tower')">
+          <span class="nav-icon">◈</span>
+          <span>Timing Tower</span>
+        </button>
+        <button class="nav-item" onclick="showView('race-control')">
+          <span class="nav-icon">◈</span>
+          <span>Race Control</span>
+        </button>
+        <button class="nav-item" onclick="showView('pit-tracker')">
+          <span class="nav-icon">◈</span>
+          <span>Pit Takip</span>
+        </button>
+        <button class="nav-item" onclick="showView('car-comparison')">
+          <span class="nav-icon">◈</span>
+          <span>Araç Karşılaştır</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-meta">
+          <span class="meta-label">VERİ KAYNAĞI</span>
+          <span class="meta-value">Jolpica / OpenF1</span>
+        </div>
+        <div class="sidebar-meta">
+          <span class="meta-label">SEZON</span>
+          <input class="season-input" type="text" id="seasonInput" value="2024" placeholder="2024" onchange="updateSeason(this.value)" />
+        </div>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="content" id="mainContent">
+
+      <!-- ── RACE RESULTS VIEW ── -->
+      <section class="view active" id="view-race-results">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">TUR 19 · ABU DHABI</div>
+            <h1 class="view-title">YARŞ SONUÇLARI</h1>
+            <div class="view-subtitle">2024 Formula 1 Etihad Airways Abu Dhabi Grand Prix</div>
+          </div>
+          <div class="view-controls">
+            <button class="ctrl-btn" onclick="refreshData()">↺ YENİLE</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="raceResultsTable">
+            <thead>
+              <tr>
+                <th class="col-pos">POS</th>
+                <th class="col-no">NO</th>
+                <th>SÜRÜCÜ</th>
+                <th>TAKM</th>
+                <th class="col-num">PUAN</th>
+                <th class="col-num">TUR</th>
+                <th>DURUM</th>
+              </tr>
+            </thead>
+            <tbody id="raceResultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── SEASON DASHBOARD VIEW ── -->
+      <section class="view" id="view-season-dashboard">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">2024 FORMULA 1</div>
+            <h1 class="view-title">SEZON ÖZETİ</h1>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="seasonKpis"></div>
+
+        <div class="dual-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">SÜRÜCÜ ŞAMPTYONU</span>
+            </div>
+            <table class="data-table compact" id="seasonDriverTable">
+              <thead><tr><th>POS</th><th>SÜRÜCÜ</th><th>TAKM</th><th class="col-num">PUAN</th></tr></thead>
+              <tbody id="seasonDriverBody"></tbody>
+            </table>
+          </div>
+          <div class="panel">
+            <div class="panel-header">
+              <span class="panel-title">KONSTRUKTÖR ŞAMPTYONU</span>
+            </div>
+            <table class="data-table compact" id="seasonConstructorTable">
+              <thead><tr><th>POS</th><th>TAKIM</th><th class="col-num">PUAN</th></tr></thead>
+              <tbody id="seasonConstructorBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── DRIVER STANDINGS VIEW ── -->
+      <section class="view" id="view-driver-standings">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">2024 ŞAMPİYONLUK</div>
+            <h1 class="view-title">SÜRÜCÜ SIRALAMASI</h1>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="driverStandingsTable">
+            <thead>
+              <tr>
+                <th class="col-pos">POS</th>
+                <th>SÜRÜCÜ</th>
+                <th>KOD</th>
+                <th>TAKIM</th>
+                <th>MİLLİYET</th>
+                <th class="col-num">PUAN</th>
+                <th class="col-num">GALİBİYET</th>
+              </tr>
+            </thead>
+            <tbody id="driverStandingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── CONSTRUCTOR STANDINGS VIEW ── -->
+      <section class="view" id="view-constructor-standings">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">2024 ŞAMPİYONLUK</div>
+            <h1 class="view-title">KONSTRUKTÖR SIRALAMASI</h1>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="constructorTable">
+            <thead>
+              <tr>
+                <th class="col-pos">POS</th>
+                <th>TAKIM</th>
+                <th>MİLLİYET</th>
+                <th class="col-num">PUAN</th>
+                <th class="col-num">GALİBİYET</th>
+              </tr>
+            </thead>
+            <tbody id="constructorBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── QUALIFYING VIEW ── -->
+      <section class="view" id="view-qualifying">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">TUR 19 · ABU DHABI</div>
+            <h1 class="view-title">SIRALAMA TURLARI</h1>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="qualiTable">
+            <thead>
+              <tr>
+                <th class="col-pos">POS</th>
+                <th>SÜRÜCÜ</th>
+                <th>TAKIM</th>
+                <th class="col-time">Q1</th>
+                <th class="col-time">Q2</th>
+                <th class="col-time">Q3</th>
+              </tr>
+            </thead>
+            <tbody id="qualiBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── PIT STOPS VIEW ── -->
+      <section class="view" id="view-pit-stops">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">TUR 19 · ABU DHABI</div>
+            <h1 class="view-title">PİT STOP ANALİZİ</h1>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="pitTable">
+            <thead>
+              <tr>
+                <th class="col-pos">STOP</th>
+                <th>SÜRÜCÜ</th>
+                <th class="col-num">LAP</th>
+                <th class="col-time">SÜRE</th>
+                <th class="col-time">TOPLAM</th>
+              </tr>
+            </thead>
+            <tbody id="pitBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── DRIVER COMPARISON VIEW ── -->
+      <section class="view" id="view-driver-compare">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">SÜRÜCÜ ANALİZİ</div>
+            <h1 class="view-title">KARŞILAŞTIRMA</h1>
+          </div>
+        </div>
+        <div class="compare-grid" id="compareGrid"></div>
+      </section>
+
+      <!-- ── TIMING TOWER VIEW ── -->
+      <section class="view" id="view-timing-tower">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">CANLI · SAO PAULO GP</div>
+            <h1 class="view-title">TİMİNG TOWER</h1>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge">
+              <span class="live-dot-lg"></span>
+              CANLI
+            </div>
+          </div>
+        </div>
+
+        <div class="weather-bar" id="weatherBar">
+          <div class="weather-item"><span class="w-label">HAVA</span><span class="w-val">☀ Açık</span></div>
+          <div class="weather-item"><span class="w-label">PISTTEMPERATÜRü</span><span class="w-val" id="wTrack">42°C</span></div>
+          <div class="weather-item"><span class="w-label">HAVA SICAKLIĞI</span><span class="w-val" id="wAir">28°C</span></div>
+          <div class="weather-item"><span class="w-label">NEM</span><span class="w-val" id="wHumidity">61%</span></div>
+          <div class="weather-item"><span class="w-label">RÜZGÂR</span><span class="w-val" id="wWind">12 km/s</span></div>
+        </div>
+
+        <div class="table-container">
+          <table class="data-table" id="timingTable">
+            <thead>
+              <tr>
+                <th class="col-pos">POS</th>
+                <th>SÜRÜCÜ</th>
+                <th class="col-time">ARALIK</th>
+                <th class="col-time">SON TUR</th>
+                <th>LASTİK</th>
+                <th class="col-num">TUR</th>
+              </tr>
+            </thead>
+            <tbody id="timingBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── RACE CONTROL VIEW ── -->
+      <section class="view" id="view-race-control">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">CANLI · SAO PAULO GP</div>
+            <h1 class="view-title">RACE CONTROL</h1>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge">
+              <span class="live-dot-lg"></span>
+              CANLI
+            </div>
+          </div>
+        </div>
+        <div class="rc-feed" id="rcFeed"></div>
+      </section>
+
+      <!-- ── PIT TRACKER VIEW ── -->
+      <section class="view" id="view-pit-tracker">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">CANLI · SAO PAULO GP</div>
+            <h1 class="view-title">PİT TAKİP</h1>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge">
+              <span class="live-dot-lg"></span>
+              CANLI
+            </div>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="pitTrackerTable">
+            <thead>
+              <tr>
+                <th>SÜRÜCÜ</th>
+                <th class="col-num">TUR</th>
+                <th class="col-time">SÜRE</th>
+                <th>LASTİK</th>
+                <th>ÖNCEKİ</th>
+              </tr>
+            </thead>
+            <tbody id="pitTrackerBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── CAR COMPARISON VIEW ── -->
+      <section class="view" id="view-car-comparison">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow">CANLI · SAO PAULO GP</div>
+            <h1 class="view-title">ARAÇ KARŞILAŞTIRMA</h1>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge"><span class="live-dot-lg"></span>CANLI</div>
+          </div>
+        </div>
+        <div class="car-compare-grid" id="carCompareGrid"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- BOTTOM STATUS BAR -->
+  <footer class="statusbar">
+    <div class="statusbar-left">
+      <span id="currentView">YARŞ SONUÇLARI</span>
+      <span class="sep">·</span>
+      <span id="recordCount">20 KAYIT</span>
+    </div>
+    <div class="statusbar-center">
+      <span class="blink-cursor">█</span>
+    </div>
+    <div class="statusbar-right">
+      <span>F1 TELEMETRİ CLI</span>
+      <span class="sep">·</span>
+      <span>v1.0</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
