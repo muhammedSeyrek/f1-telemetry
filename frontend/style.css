@@ -295,7 +295,7 @@ html, body {
   font-size: 11px;
   color: var(--text-03);
 }
-.season-input {
+.param-input {
   background: var(--surface-03);
   border: 1px solid var(--border);
   color: var(--text-01);
@@ -305,7 +305,7 @@ html, body {
   width: 80px;
   outline: none;
 }
-.season-input:focus { border-color: var(--blue); }
+.param-input:focus { border-color: var(--blue); }
 
 /* ══════════════════════════════════════
    CONTENT AREA
@@ -799,6 +799,104 @@ html, body {
    SELECTION HIGHLIGHT
 ══════════════════════════════════════ */
 ::selection { background: rgba(15, 98, 254, 0.25); }
+
+/* ══════════════════════════════════════
+   LOADING / ERROR STATES
+══════════════════════════════════════ */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 0;
+  color: var(--text-04);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border-hi);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.error-state {
+  padding: 20px 0;
+  color: var(--red-hi);
+  font-size: 11px;
+  border-left: 2px solid var(--red);
+  padding-left: 14px;
+}
+.error-state .err-label { letter-spacing: 1px; font-weight: 600; margin-bottom: 4px; }
+.error-state .err-msg { color: var(--text-03); }
+
+.empty-state {
+  padding: 28px 0;
+  color: var(--text-04);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+/* ══════════════════════════════════════
+   SESSION INFO BAR
+══════════════════════════════════════ */
+.session-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 10px 16px;
+  background: var(--surface-02);
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+.session-item { display: flex; flex-direction: column; gap: 2px; }
+.session-label { font-size: 9px; letter-spacing: 1px; color: var(--text-04); }
+.session-val { color: var(--text-01); font-weight: 500; }
+
+/* ══════════════════════════════════════
+   DRIVER PICKER (car comparison)
+══════════════════════════════════════ */
+.driver-picker {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* driver list hint */
+#cc-driver-list {
+  margin-bottom: 16px;
+}
+.driver-hint-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 0;
+}
+.driver-chip {
+  background: var(--surface-02);
+  border: 1px solid var(--border);
+  color: var(--text-03);
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.driver-chip:hover {
+  border-color: var(--border-hi);
+  color: var(--text-01);
+}
+.driver-chip .chip-num { color: var(--text-04); margin-right: 5px; }
 
 /* ══════════════════════════════════════
    RESPONSIVE
