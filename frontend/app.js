@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════
    F1 TELEMETRI — FRONTEND APP
-   Mock data matching Go CLI data structures
+   Real API: Jolpica (historic) + OpenF1 (live)
    ═══════════════════════════════════════════════ */
 
 'use strict';
@@ -9,444 +9,686 @@
 let currentMode = 'historic';
 let currentView = 'race-results';
 let liveInterval = null;
+let appSeason = 'current';
+let appRound  = 'last';
+
+// ── API BASES ──
+const JOLPI  = 'https://api.jolpi.ca/ergast/f1';
+const OF1    = 'https://api.openf1.org/v1';
 
 // ══════════════════════════════════════
-// MOCK DATA  (matches Go models exactly)
+// API HELPERS
 // ══════════════════════════════════════
 
-const RACE_RESULTS = [
-  { pos:'1', no:'1',  code:'VER', name:'Max Verstappen',      team:'Red Bull Racing',   pts:'25', laps:'58', status:'Finished', fastLap:false },
-  { pos:'2', no:'4',  code:'NOR', name:'Lando Norris',         team:'McLaren',           pts:'18', laps:'58', status:'Finished', fastLap:false },
-  { pos:'3', no:'16', code:'LEC', name:'Charles Leclerc',      team:'Ferrari',           pts:'15', laps:'58', status:'Finished', fastLap:false },
-  { pos:'4', no:'63', code:'RUS', name:'George Russell',       team:'Mercedes',          pts:'12', laps:'58', status:'Finished', fastLap:false },
-  { pos:'5', no:'81', code:'PIA', name:'Oscar Piastri',        team:'McLaren',           pts:'10', laps:'58', status:'Finished', fastLap:false },
-  { pos:'6', no:'55', code:'SAI', name:'Carlos Sainz',         team:'Ferrari',           pts:'8',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'7', no:'44', code:'HAM', name:'Lewis Hamilton',       team:'Mercedes',          pts:'6',  laps:'58', status:'Finished', fastLap:true  },
-  { pos:'8', no:'14', code:'ALO', name:'Fernando Alonso',      team:'Aston Martin',      pts:'4',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'9', no:'10', code:'GAS', name:'Pierre Gasly',         team:'Alpine',            pts:'2',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'10',no:'18', code:'STR', name:'Lance Stroll',         team:'Aston Martin',      pts:'1',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'11',no:'23', code:'ALB', name:'Alexander Albon',      team:'Williams',          pts:'0',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'12',no:'31', code:'OCO', name:'Esteban Ocon',         team:'Alpine',            pts:'0',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'13',no:'22', code:'TSU', name:'Yuki Tsunoda',         team:'RB',                pts:'0',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'14',no:'3',  code:'RIC', name:'Daniel Ricciardo',     team:'RB',                pts:'0',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'15',no:'27', code:'HUL', name:'Nico Hülkenberg',      team:'Haas F1 Team',      pts:'0',  laps:'58', status:'Finished', fastLap:false },
-  { pos:'16',no:'20', code:'MAG', name:'Kevin Magnussen',      team:'Haas F1 Team',      pts:'0',  laps:'57', status:'+1 Lap',   fastLap:false },
-  { pos:'17',no:'77', code:'BOT', name:'Valtteri Bottas',      team:'Kick Sauber',       pts:'0',  laps:'57', status:'+1 Lap',   fastLap:false },
-  { pos:'18',no:'24', code:'ZHO', name:'Zhou Guanyu',          team:'Kick Sauber',       pts:'0',  laps:'57', status:'+1 Lap',   fastLap:false },
-  { pos:'19',no:'2',  code:'SAR', name:'Logan Sargeant',       team:'Williams',          pts:'0',  laps:'56', status:'+2 Laps',  fastLap:false },
-  { pos:'20',no:'11', code:'PER', name:'Sergio Pérez',         team:'Red Bull Racing',   pts:'0',  laps:'47', status:'Collision',fastLap:false },
-];
+async function jolpiFetch(path) {
+  const url = `${JOLPI}${path}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  return json.MRData;
+}
 
-const DRIVER_STANDINGS = [
-  { pos:'1',  code:'VER', name:'Max Verstappen',    team:'Red Bull Racing', nat:'NED', pts:'575', wins:'9'  },
-  { pos:'2',  code:'NOR', name:'Lando Norris',       team:'McLaren',         nat:'GBR', pts:'356', wins:'3'  },
-  { pos:'3',  code:'LEC', name:'Charles Leclerc',    team:'Ferrari',         nat:'MON', pts:'307', wins:'3'  },
-  { pos:'4',  code:'PIA', name:'Oscar Piastri',      team:'McLaren',         nat:'AUS', pts:'268', wins:'2'  },
-  { pos:'5',  code:'SAI', name:'Carlos Sainz',       team:'Ferrari',         nat:'ESP', pts:'244', wins:'2'  },
-  { pos:'6',  code:'RUS', name:'George Russell',     team:'Mercedes',        nat:'GBR', pts:'228', wins:'1'  },
-  { pos:'7',  code:'HAM', name:'Lewis Hamilton',     team:'Mercedes',        nat:'GBR', pts:'211', wins:'2'  },
-  { pos:'8',  code:'PER', name:'Sergio Pérez',       team:'Red Bull Racing', nat:'MEX', pts:'152', wins:'0'  },
-  { pos:'9',  code:'ALO', name:'Fernando Alonso',    team:'Aston Martin',    nat:'ESP', pts:'68',  wins:'0'  },
-  { pos:'10', code:'HUL', name:'Nico Hülkenberg',    team:'Haas F1 Team',    nat:'GER', pts:'37',  wins:'0'  },
-  { pos:'11', code:'STR', name:'Lance Stroll',       team:'Aston Martin',    nat:'CAN', pts:'24',  wins:'0'  },
-  { pos:'12', code:'TSU', name:'Yuki Tsunoda',       team:'RB',              nat:'JPN', pts:'22',  wins:'0'  },
-  { pos:'13', code:'GAS', name:'Pierre Gasly',       team:'Alpine',          nat:'FRA', pts:'16',  wins:'0'  },
-  { pos:'14', code:'ALB', name:'Alexander Albon',    team:'Williams',        nat:'THA', pts:'12',  wins:'0'  },
-  { pos:'15', code:'OCO', name:'Esteban Ocon',       team:'Alpine',          nat:'FRA', pts:'10',  wins:'0'  },
-  { pos:'16', code:'MAG', name:'Kevin Magnussen',    team:'Haas F1 Team',    nat:'DEN', pts:'6',   wins:'0'  },
-  { pos:'17', code:'BOT', name:'Valtteri Bottas',    team:'Kick Sauber',     nat:'FIN', pts:'0',   wins:'0'  },
-  { pos:'18', code:'ZHO', name:'Zhou Guanyu',        team:'Kick Sauber',     nat:'CHN', pts:'0',   wins:'0'  },
-  { pos:'19', code:'RIC', name:'Daniel Ricciardo',   team:'RB',              nat:'AUS', pts:'0',   wins:'0'  },
-  { pos:'20', code:'SAR', name:'Logan Sargeant',     team:'Williams',        nat:'USA', pts:'0',   wins:'0'  },
-];
-
-const CONSTRUCTOR_STANDINGS = [
-  { pos:'1', team:'McLaren',         nat:'GBR', pts:'624', wins:'6'  },
-  { pos:'2', team:'Ferrari',         nat:'ITA', pts:'584', wins:'5'  },
-  { pos:'3', team:'Red Bull Racing', nat:'AUT', pts:'589', wins:'9'  },
-  { pos:'4', team:'Mercedes',        nat:'GBR', pts:'468', wins:'4'  },
-  { pos:'5', team:'Aston Martin',    nat:'GBR', pts:'94',  wins:'0'  },
-  { pos:'6', team:'Haas F1 Team',    nat:'USA', pts:'58',  wins:'0'  },
-  { pos:'7', team:'RB',              nat:'ITA', pts:'46',  wins:'0'  },
-  { pos:'8', team:'Alpine',          nat:'FRA', pts:'65',  wins:'0'  },
-  { pos:'9', team:'Williams',        nat:'GBR', pts:'17',  wins:'0'  },
-  { pos:'10',team:'Kick Sauber',     nat:'SUI', pts:'4',   wins:'0'  },
-];
-
-const QUALIFYING = [
-  { pos:'1',  code:'VER', name:'Max Verstappen',    team:'Red Bull Racing', q1:'1:22.848', q2:'1:22.195', q3:'1:21.672' },
-  { pos:'2',  code:'LEC', name:'Charles Leclerc',   team:'Ferrari',         q1:'1:23.012', q2:'1:22.310', q3:'1:21.903' },
-  { pos:'3',  code:'NOR', name:'Lando Norris',       team:'McLaren',         q1:'1:22.991', q2:'1:22.284', q3:'1:22.047' },
-  { pos:'4',  code:'SAI', name:'Carlos Sainz',       team:'Ferrari',         q1:'1:23.118', q2:'1:22.401', q3:'1:22.156' },
-  { pos:'5',  code:'PIA', name:'Oscar Piastri',      team:'McLaren',         q1:'1:23.234', q2:'1:22.518', q3:'1:22.287' },
-  { pos:'6',  code:'RUS', name:'George Russell',     team:'Mercedes',        q1:'1:23.345', q2:'1:22.629', q3:'1:22.398' },
-  { pos:'7',  code:'HAM', name:'Lewis Hamilton',     team:'Mercedes',        q1:'1:23.456', q2:'1:22.740', q3:'1:22.509' },
-  { pos:'8',  code:'ALO', name:'Fernando Alonso',    team:'Aston Martin',    q1:'1:23.567', q2:'1:22.851', q3:'1:22.620' },
-  { pos:'9',  code:'STR', name:'Lance Stroll',       team:'Aston Martin',    q1:'1:23.678', q2:'1:22.962', q3:'1:22.731' },
-  { pos:'10', code:'GAS', name:'Pierre Gasly',       team:'Alpine',          q1:'1:23.789', q2:'1:23.073', q3:'1:22.842' },
-  { pos:'11', code:'HUL', name:'Nico Hülkenberg',    team:'Haas F1 Team',    q1:'1:23.900', q2:'1:23.184', q3:null },
-  { pos:'12', code:'TSU', name:'Yuki Tsunoda',       team:'RB',              q1:'1:24.011', q2:'1:23.295', q3:null },
-  { pos:'13', code:'ALB', name:'Alexander Albon',    team:'Williams',        q1:'1:24.122', q2:'1:23.406', q3:null },
-  { pos:'14', code:'MAG', name:'Kevin Magnussen',    team:'Haas F1 Team',    q1:'1:24.233', q2:'1:23.517', q3:null },
-  { pos:'15', code:'OCO', name:'Esteban Ocon',       team:'Alpine',          q1:'1:24.344', q2:'1:23.628', q3:null },
-  { pos:'16', code:'RIC', name:'Daniel Ricciardo',   team:'RB',              q1:'1:24.455', q2:null,       q3:null },
-  { pos:'17', code:'BOT', name:'Valtteri Bottas',    team:'Kick Sauber',     q1:'1:24.566', q2:null,       q3:null },
-  { pos:'18', code:'PER', name:'Sergio Pérez',       team:'Red Bull Racing', q1:'1:24.677', q2:null,       q3:null },
-  { pos:'19', code:'ZHO', name:'Zhou Guanyu',        team:'Kick Sauber',     q1:'1:24.788', q2:null,       q3:null },
-  { pos:'20', code:'SAR', name:'Logan Sargeant',     team:'Williams',        q1:'1:24.899', q2:null,       q3:null },
-];
-
-const PIT_STOPS = [
-  { stop:'1', code:'SAI', name:'Carlos Sainz',     lap:'14', dur:'2.4s', total:'14:32.1' },
-  { stop:'1', code:'ALO', name:'Fernando Alonso',  lap:'15', dur:'2.6s', total:'15:10.8' },
-  { stop:'1', code:'NOR', name:'Lando Norris',      lap:'16', dur:'2.3s', total:'16:05.4' },
-  { stop:'1', code:'VER', name:'Max Verstappen',   lap:'17', dur:'2.1s', total:'17:22.9' },
-  { stop:'1', code:'LEC', name:'Charles Leclerc',  lap:'18', dur:'2.5s', total:'18:44.2' },
-  { stop:'1', code:'HAM', name:'Lewis Hamilton',   lap:'20', dur:'2.8s', total:'20:15.7' },
-  { stop:'1', code:'RUS', name:'George Russell',   lap:'21', dur:'2.7s', total:'21:33.1' },
-  { stop:'1', code:'PIA', name:'Oscar Piastri',    lap:'22', dur:'2.4s', total:'22:18.6' },
-  { stop:'2', code:'NOR', name:'Lando Norris',      lap:'35', dur:'2.2s', total:'35:44.3' },
-  { stop:'2', code:'VER', name:'Max Verstappen',   lap:'37', dur:'2.0s', total:'37:52.1' },
-  { stop:'2', code:'LEC', name:'Charles Leclerc',  lap:'38', dur:'2.6s', total:'38:29.4' },
-  { stop:'2', code:'SAI', name:'Carlos Sainz',     lap:'40', dur:'2.3s', total:'40:11.8' },
-];
-
-const LIVE_TIMING = [
-  { pos:1,  code:'NOR', name:'Lando Norris',      interval:'LEADER', lastLap:'1:12.847', tire:'M', lap:38 },
-  { pos:2,  code:'VER', name:'Max Verstappen',    interval:'+4.821', lastLap:'1:13.102', tire:'H', lap:38 },
-  { pos:3,  code:'PIA', name:'Oscar Piastri',     interval:'+8.234', lastLap:'1:13.456', tire:'M', lap:38 },
-  { pos:4,  code:'LEC', name:'Charles Leclerc',   interval:'+12.109',lastLap:'1:13.781', tire:'H', lap:37 },
-  { pos:5,  code:'SAI', name:'Carlos Sainz',      interval:'+16.892',lastLap:'1:14.012', tire:'M', lap:37 },
-  { pos:6,  code:'HAM', name:'Lewis Hamilton',    interval:'+21.445',lastLap:'1:14.234', tire:'S', lap:36 },
-  { pos:7,  code:'RUS', name:'George Russell',    interval:'+28.001',lastLap:'1:14.567', tire:'S', lap:36 },
-  { pos:8,  code:'ALO', name:'Fernando Alonso',   interval:'+32.789',lastLap:'1:14.892', tire:'H', lap:35 },
-  { pos:9,  code:'GAS', name:'Pierre Gasly',      interval:'+38.123',lastLap:'1:15.124', tire:'M', lap:35 },
-  { pos:10, code:'HUL', name:'Nico Hülkenberg',   interval:'+42.567',lastLap:'1:15.348', tire:'H', lap:34 },
-  { pos:11, code:'STR', name:'Lance Stroll',      interval:'+1 TUR', lastLap:'1:15.891', tire:'M', lap:34 },
-  { pos:12, code:'TSU', name:'Yuki Tsunoda',      interval:'+1 TUR', lastLap:'1:16.012', tire:'S', lap:33 },
-  { pos:13, code:'ALB', name:'Alexander Albon',   interval:'+1 TUR', lastLap:'1:16.234', tire:'H', lap:33 },
-  { pos:14, code:'MAG', name:'Kevin Magnussen',   interval:'+1 TUR', lastLap:'1:16.456', tire:'M', lap:32 },
-  { pos:15, code:'OCO', name:'Esteban Ocon',      interval:'+1 TUR', lastLap:'1:16.678', tire:'S', lap:32 },
-  { pos:16, code:'BOT', name:'Valtteri Bottas',   interval:'+2 TUR', lastLap:'1:17.012', tire:'H', lap:31 },
-  { pos:17, code:'ZHO', name:'Zhou Guanyu',       interval:'+2 TUR', lastLap:'1:17.234', tire:'M', lap:31 },
-  { pos:18, code:'PER', name:'Sergio Pérez',      interval:'PIT',    lastLap:'1:17.456', tire:'S', lap:30 },
-  { pos:19, code:'RIC', name:'Daniel Ricciardo',  interval:'+3 TUR', lastLap:'1:18.012', tire:'H', lap:29 },
-  { pos:20, code:'SAR', name:'Logan Sargeant',    interval:'DNF',    lastLap:'---',       tire:'S', lap:28 },
-];
-
-const RC_MESSAGES = [
-  { lap:38, type:'INFO',    msg:'Track Status: GREEN - Track is clear' },
-  { lap:37, type:'DRS',     msg:'DRS enabled at detection points 1 and 2' },
-  { lap:35, type:'PENALTY', msg:'10 second time penalty — PER — Causing a Collision (SAR)' },
-  { lap:33, type:'FLAG',    msg:'Yellow Flag: Sector 2 — Debris on track' },
-  { lap:33, type:'INFO',    msg:'Track Status: YELLOW — Marshals recovering debris' },
-  { lap:33, type:'DRS',     msg:'DRS disabled — Yellow flag conditions' },
-  { lap:32, type:'INFO',    msg:'Track Status: GREEN - Track is clear' },
-  { lap:32, type:'DRS',     msg:'DRS enabled at detection points 1 and 2' },
-  { lap:28, type:'VSC',     msg:'Virtual Safety Car deployed — Incident at Turn 8' },
-  { lap:27, type:'VSC',     msg:'Virtual Safety Car ending' },
-  { lap:25, type:'INFO',    msg:'Fastest Lap: NOR — 1:12.847 on Lap 38' },
-  { lap:18, type:'SC',      msg:'Safety Car deployed — Incident at Turn 1 — VER and RIC contact' },
-  { lap:21, type:'SC',      msg:'Safety Car in this lap' },
-  { lap:1,  type:'FLAG',    msg:'Lights out — Race Start' },
-];
-
-const PIT_TRACKER = [
-  { code:'PER', name:'Sergio Pérez',    lap:30, dur:'2.1s', tire:'S', prev:'H' },
-  { code:'ZHO', name:'Zhou Guanyu',     lap:28, dur:'2.8s', tire:'M', prev:'S' },
-  { code:'BOT', name:'Valtteri Bottas', lap:27, dur:'2.6s', tire:'H', prev:'M' },
-  { code:'SAR', name:'Logan Sargeant',  lap:25, dur:'3.1s', tire:'S', prev:'M' },
-  { code:'MAG', name:'Kevin Magnussen', lap:22, dur:'2.4s', tire:'M', prev:'S' },
-  { code:'OCO', name:'Esteban Ocon',    lap:21, dur:'2.3s', tire:'S', prev:'H' },
-];
+async function openf1Fetch(path) {
+  const url = `${OF1}${path}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 // ══════════════════════════════════════
-// HELPERS
+// HTML HELPERS
 // ══════════════════════════════════════
+
+function loadingHTML(msg) {
+  return `<div class="loading-state"><div class="spinner"></div>${msg || 'VERİ YÜKLENİYOR...'}</div>`;
+}
+
+function errorHTML(err) {
+  return `<div class="error-state"><div class="err-label">HATA</div><div class="err-msg">${err}</div></div>`;
+}
+
+function emptyHTML(msg) {
+  return `<div class="empty-state">${msg || 'VERİ BULUNAMADI'}</div>`;
+}
 
 function posClass(pos) {
-  if (pos === '1' || pos === 1) return 'pos-1';
-  if (pos === '2' || pos === 2) return 'pos-2';
-  if (pos === '3' || pos === 3) return 'pos-3';
+  const p = parseInt(pos);
+  if (p === 1) return 'pos-1';
+  if (p === 2) return 'pos-2';
+  if (p === 3) return 'pos-3';
   return 'pos-other';
 }
 
 function tireHTML(compound) {
-  const map = { M:'M', S:'S', H:'H', I:'I', W:'W' };
-  const c = map[compound] || compound;
+  if (!compound) return '—';
+  const c = compound[0].toUpperCase();
   return `<span class="tire tire-${c}">${c}</span>`;
 }
 
 function statusHTML(status) {
   if (status === 'Finished') return `<span class="status-badge status-finished">FINISHED</span>`;
-  if (status === 'Collision' || status === 'Accident' || status === 'DNF')
+  if (['Collision','Accident','DNF'].includes(status))
     return `<span class="status-badge status-dnf">${status.toUpperCase()}</span>`;
   return `<span class="status-badge status-other">${status}</span>`;
 }
 
 function intervalHTML(interval) {
-  if (interval === 'LEADER') return `<span class="interval interval-leader">◉ LEADER</span>`;
-  if (interval === 'PIT')    return `<span class="interval" style="color:var(--yellow)">PIT</span>`;
-  if (interval === 'DNF')    return `<span class="interval" style="color:var(--red)">DNF</span>`;
+  if (!interval || interval === 'LEADER') return `<span class="interval interval-leader">◉ LEADER</span>`;
+  if (interval === 'PIT')  return `<span class="interval" style="color:var(--yellow)">PIT</span>`;
+  if (interval === 'DNF')  return `<span class="interval" style="color:var(--red)">DNF</span>`;
   const secs = parseFloat(interval.replace('+',''));
   if (!isNaN(secs) && secs < 2) return `<span class="interval interval-close">${interval}</span>`;
   return `<span class="interval interval-normal">${interval}</span>`;
 }
 
 function rcTypeHTML(type) {
-  return `<span class="rc-type rc-type-${type}">${type}</span>`;
+  const t = (type || 'INFO').toUpperCase();
+  return `<span class="rc-type rc-type-${t}">${t}</span>`;
+}
+
+function setApiStatus(state) {
+  const dot  = document.querySelector('#apiStatus .status-dot');
+  const text = document.getElementById('apiStatusText');
+  if (!dot || !text) return;
+  dot.className  = `status-dot ${state === 'ok' ? 'green' : state === 'err' ? 'red' : 'yellow'}`;
+  text.textContent = state === 'ok' ? 'API BAĞLI' : state === 'err' ? 'HATA' : 'BAĞLANIYOR';
+}
+
+function updateStatus(view, count) {
+  const lbl = document.getElementById('currentViewLabel');
+  const cnt = document.getElementById('recordCount');
+  if (lbl) lbl.textContent = view;
+  if (cnt) cnt.textContent = count || '—';
+  const lu = document.getElementById('lastUpdated');
+  if (lu) lu.textContent = new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function raceLabel(race) {
+  if (!race) return '—';
+  return `TUR ${race.round} · ${(race.Circuit?.circuitName || race.raceName || '').toUpperCase()}`;
 }
 
 // ══════════════════════════════════════
-// RENDER FUNCTIONS
+// HISTORIC RENDER FUNCTIONS
 // ══════════════════════════════════════
 
-function renderRaceResults() {
-  const tbody = document.getElementById('raceResultsBody');
-  tbody.innerHTML = RACE_RESULTS.map(r => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(r.pos)}">${r.pos}</span></td>
-      <td class="col-no"><span class="driver-num">${r.no}</span></td>
-      <td>
-        <div class="driver-cell">
-          <span class="driver-code">${r.code}</span>
-          <span class="driver-name">${r.name}</span>
-          ${r.fastLap ? '<span class="fast-lap">⬡ FL</span>' : ''}
-        </div>
-      </td>
-      <td>${r.team}</td>
-      <td class="col-num ${r.pts === '0' ? 'pts-zero' : 'pts'}">${r.pts}</td>
-      <td class="col-num">${r.laps}</td>
-      <td>${statusHTML(r.status)}</td>
-    </tr>
-  `).join('');
-  updateStatus('YARŞ SONUÇLARI', `${RACE_RESULTS.length} SÜRÜCÜ`);
-}
+async function renderRaceResults() {
+  const eyebrow  = document.getElementById('rr-eyebrow');
+  const subtitle = document.getElementById('rr-subtitle');
+  const tbody    = document.getElementById('raceResultsBody');
+  if (!tbody) return;
 
-function renderSeasonDashboard() {
-  const kpiGrid = document.getElementById('seasonKpis');
-  kpiGrid.innerHTML = [
-    { label:'TOPLAM YARIŞ',   value:'24',                  sub:'2024 Takvim',     accent:true  },
-    { label:'TAMAMLANAN',     value:'24',                  sub:'Yarış Bitti',     accent:false },
-    { label:'ŞAMPİYON',       value:'VER',                 sub:'4. Dünya Şampiyonluğu', accent:true },
-    { label:'PUAN LİDERİ',    value:'575',                 sub:'Max Verstappen',  accent:false },
-    { label:'EN HIZLI TUR',   value:'1:09.1',              sub:'Monza 2024',      accent:false },
-    { label:'KAZA SAYISI',    value:'8',                   sub:'DNF Toplam',      accent:false },
-  ].map(k => `
-    <div class="kpi-card ${k.accent ? 'kpi-accent' : ''}">
-      <div class="kpi-label">${k.label}</div>
-      <div class="kpi-value">${k.value}</div>
-      <div class="kpi-sub">${k.sub}</div>
-    </div>
-  `).join('');
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
 
-  const driverBody = document.getElementById('seasonDriverBody');
-  driverBody.innerHTML = DRIVER_STANDINGS.slice(0,10).map(d => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(d.pos)}">${d.pos}</span></td>
-      <td><div class="driver-cell"><span class="driver-code">${d.code}</span><span class="driver-name">${d.name}</span></div></td>
-      <td>${d.team}</td>
-      <td class="col-num pts">${d.pts}</td>
-    </tr>
-  `).join('');
+  try {
+    const data = await jolpiFetch(`/${appSeason}/${appRound}/results.json`);
+    const races = data.RaceTable?.Races || [];
+    if (!races.length) { tbody.innerHTML = emptyHTML('Bu tur için veri bulunamadı.'); return; }
 
-  const consBody = document.getElementById('seasonConstructorBody');
-  consBody.innerHTML = CONSTRUCTOR_STANDINGS.map(c => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(c.pos)}">${c.pos}</span></td>
-      <td>${c.team}</td>
-      <td class="col-num pts">${c.pts}</td>
-    </tr>
-  `).join('');
+    const race    = races[0];
+    const results = race.Results || [];
 
-  updateStatus('SEZON ÖZETİ', '2024 · 24 YARIŞ');
-}
+    if (eyebrow)  eyebrow.textContent  = raceLabel(race);
+    if (subtitle) subtitle.textContent = race.raceName || '';
 
-function renderDriverStandings() {
-  const tbody = document.getElementById('driverStandingsBody');
-  tbody.innerHTML = DRIVER_STANDINGS.map(d => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(d.pos)}">${d.pos}</span></td>
-      <td><div class="driver-cell"><span class="driver-name">${d.name}</span></div></td>
-      <td><span class="driver-code">${d.code}</span></td>
-      <td>${d.team}</td>
-      <td>${d.nat}</td>
-      <td class="col-num pts">${d.pts}</td>
-      <td class="col-num">${d.wins}</td>
-    </tr>
-  `).join('');
-  updateStatus('SÜRÜCÜ SIRALAMASI', `${DRIVER_STANDINGS.length} SÜRÜCÜ`);
-}
-
-function renderConstructorStandings() {
-  const tbody = document.getElementById('constructorBody');
-  tbody.innerHTML = CONSTRUCTOR_STANDINGS.map(c => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(c.pos)}">${c.pos}</span></td>
-      <td>${c.team}</td>
-      <td>${c.nat}</td>
-      <td class="col-num pts">${c.pts}</td>
-      <td class="col-num">${c.wins}</td>
-    </tr>
-  `).join('');
-  updateStatus('KONSTRUKTÖR SIRALAMASI', `${CONSTRUCTOR_STANDINGS.length} TAKIM`);
-}
-
-function renderQualifying() {
-  const tbody = document.getElementById('qualiBody');
-  tbody.innerHTML = QUALIFYING.map(q => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(q.pos)}">${q.pos}</span></td>
-      <td><div class="driver-cell"><span class="driver-code">${q.code}</span><span class="driver-name">${q.name}</span></div></td>
-      <td>${q.team}</td>
-      <td class="col-time"><span class="${q.pos === '1' ? 'time-best' : (q.q1 ? 'time-val' : 'time-empty')}">${q.q1 || '—'}</span></td>
-      <td class="col-time"><span class="${q.q2 ? 'time-val' : 'time-empty'}">${q.q2 || '—'}</span></td>
-      <td class="col-time"><span class="${q.q3 ? (q.pos === '1' ? 'time-best' : 'time-val') : 'time-empty'}">${q.q3 || '—'}</span></td>
-    </tr>
-  `).join('');
-  updateStatus('SIRALAMA TURLARI', `${QUALIFYING.length} SÜRÜCÜ`);
-}
-
-function renderPitStops() {
-  const tbody = document.getElementById('pitBody');
-  tbody.innerHTML = PIT_STOPS.map(p => `
-    <tr>
-      <td class="col-pos">${p.stop}</td>
-      <td><div class="driver-cell"><span class="driver-code">${p.code}</span><span class="driver-name">${p.name}</span></div></td>
-      <td class="col-num">${p.lap}</td>
-      <td class="col-time"><span class="time-val">${p.dur}</span></td>
-      <td class="col-time"><span class="time-val">${p.total}</span></td>
-    </tr>
-  `).join('');
-  updateStatus('PİT STOP ANALİZİ', `${PIT_STOPS.length} STOP`);
-}
-
-function renderDriverCompare() {
-  const grid = document.getElementById('compareGrid');
-  const drivers = [
-    {
-      name: 'Max Verstappen', team: 'Red Bull Racing',
-      stats: [
-        { label:'BAŞLANGIÇ POZİSYONU', val:'P3', cmp:1 },
-        { label:'FİNİŞ POZİSYONU',     val:'P1', cmp:1 },
-        { label:'EN HIZLI TUR',        val:'1:24.012', cmp:1 },
-        { label:'PİT STOP',            val:'2',  cmp:0 },
-        { label:'PUAN',                val:'25', cmp:1 },
-        { label:'DURUM',               val:'Finished', cmp:0 },
-      ]
-    },
-    {
-      name: 'Lando Norris', team: 'McLaren',
-      stats: [
-        { label:'BAŞLANGIÇ POZİSYONU', val:'P1', cmp:-1 },
-        { label:'FİNİŞ POZİSYONU',     val:'P2', cmp:-1 },
-        { label:'EN HIZLI TUR',        val:'1:24.567', cmp:-1 },
-        { label:'PİT STOP',            val:'2',  cmp:0 },
-        { label:'PUAN',                val:'18', cmp:-1 },
-        { label:'DURUM',               val:'Finished', cmp:0 },
-      ]
-    }
-  ];
-  grid.innerHTML = drivers.map(d => `
-    <div class="compare-card">
-      <div class="compare-header">
-        <span class="compare-driver-name">${d.name}</span>
-        <span class="compare-driver-team">${d.team}</span>
-      </div>
-      <div class="compare-stats">
-        ${d.stats.map(s => `
-          <div class="stat-row">
-            <span class="stat-label">${s.label}</span>
-            <span class="stat-val ${s.cmp > 0 ? 'better' : s.cmp < 0 ? 'worse' : ''}">${s.val}</span>
+    tbody.innerHTML = results.map(r => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(r.position)}">${r.position}</span></td>
+        <td class="col-no"><span class="driver-num">${r.number}</span></td>
+        <td>
+          <div class="driver-cell">
+            <span class="driver-code">${r.Driver?.code || '—'}</span>
+            <span class="driver-name">${r.Driver?.givenName} ${r.Driver?.familyName}</span>
+            ${r.FastestLap?.rank === '1' ? '<span class="fast-lap">⬡ FL</span>' : ''}
           </div>
-        `).join('')}
+        </td>
+        <td>${r.Constructor?.name || '—'}</td>
+        <td class="col-num ${r.points === '0' ? 'pts-zero' : 'pts'}">${r.points}</td>
+        <td class="col-num">${r.laps}</td>
+        <td>${statusHTML(r.status)}</td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('YARIŞ SONUÇLARI', `${results.length} SÜRÜCÜ`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderDriverStandings() {
+  const eyebrow = document.getElementById('ds-eyebrow');
+  const tbody   = document.getElementById('driverStandingsBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
+
+  try {
+    const data = await jolpiFetch(`/${appSeason}/driverStandings.json`);
+    const list = data.StandingsTable?.StandingsLists?.[0];
+    const standings = list?.DriverStandings || [];
+
+    if (eyebrow) eyebrow.textContent = `${list?.season || appSeason} ŞAMPİYONLUK`;
+
+    tbody.innerHTML = standings.map(d => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(d.position)}">${d.position}</span></td>
+        <td><div class="driver-cell"><span class="driver-name">${d.Driver?.givenName} ${d.Driver?.familyName}</span></div></td>
+        <td><span class="driver-code">${d.Driver?.code || '—'}</span></td>
+        <td>${d.Constructors?.[0]?.name || '—'}</td>
+        <td>${d.Driver?.nationality || '—'}</td>
+        <td class="col-num pts">${d.points}</td>
+        <td class="col-num">${d.wins}</td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('SÜRÜCÜ SIRALAMASI', `${standings.length} SÜRÜCÜ`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderConstructorStandings() {
+  const eyebrow = document.getElementById('cs-eyebrow');
+  const tbody   = document.getElementById('constructorBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
+
+  try {
+    const data = await jolpiFetch(`/${appSeason}/constructorStandings.json`);
+    const list = data.StandingsTable?.StandingsLists?.[0];
+    const standings = list?.ConstructorStandings || [];
+
+    if (eyebrow) eyebrow.textContent = `${list?.season || appSeason} ŞAMPİYONLUK`;
+
+    tbody.innerHTML = standings.map(c => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(c.position)}">${c.position}</span></td>
+        <td>${c.Constructor?.name || '—'}</td>
+        <td>${c.Constructor?.nationality || '—'}</td>
+        <td class="col-num pts">${c.points}</td>
+        <td class="col-num">${c.wins}</td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('KONSTRUKTÖR SIRALAMASI', `${standings.length} TAKIM`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderSeasonDashboard() {
+  const eyebrow    = document.getElementById('sd-eyebrow');
+  const driverBody = document.getElementById('sdDriverBody');
+  const consBody   = document.getElementById('sdConstructorBody');
+  if (!driverBody || !consBody) return;
+
+  driverBody.innerHTML = loadingHTML();
+  consBody.innerHTML   = '';
+  setApiStatus('loading');
+
+  try {
+    const [dData, cData] = await Promise.all([
+      jolpiFetch(`/${appSeason}/driverStandings.json`),
+      jolpiFetch(`/${appSeason}/constructorStandings.json`),
+    ]);
+
+    const dList = dData.StandingsTable?.StandingsLists?.[0];
+    const cList = cData.StandingsTable?.StandingsLists?.[0];
+    const drivers       = dList?.DriverStandings || [];
+    const constructors  = cList?.ConstructorStandings || [];
+
+    const season = dList?.season || appSeason;
+    if (eyebrow) eyebrow.textContent = `${season} FORMULA 1`;
+
+    driverBody.innerHTML = drivers.slice(0,10).map(d => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(d.position)}">${d.position}</span></td>
+        <td><div class="driver-cell">
+          <span class="driver-code">${d.Driver?.code || '—'}</span>
+          <span class="driver-name">${d.Driver?.givenName} ${d.Driver?.familyName}</span>
+        </div></td>
+        <td>${d.Constructors?.[0]?.name || '—'}</td>
+        <td class="col-num pts">${d.points}</td>
+      </tr>
+    `).join('');
+
+    consBody.innerHTML = constructors.map(c => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(c.position)}">${c.position}</span></td>
+        <td>${c.Constructor?.name || '—'}</td>
+        <td class="col-num pts">${c.points}</td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('SEZON ÖZETİ', `${season} · ${drivers.length} SÜRÜCÜ`);
+  } catch(e) {
+    driverBody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderQualifying() {
+  const eyebrow = document.getElementById('qr-eyebrow');
+  const tbody   = document.getElementById('qualiBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
+
+  try {
+    const data  = await jolpiFetch(`/${appSeason}/${appRound}/qualifying.json`);
+    const races = data.RaceTable?.Races || [];
+    if (!races.length) { tbody.innerHTML = emptyHTML('Bu tur için sıralama verisi bulunamadı.'); return; }
+
+    const race = races[0];
+    const results = race.QualifyingResults || [];
+
+    if (eyebrow) eyebrow.textContent = raceLabel(race);
+
+    tbody.innerHTML = results.map(q => `
+      <tr>
+        <td class="col-pos"><span class="pos-badge ${posClass(q.position)}">${q.position}</span></td>
+        <td><div class="driver-cell">
+          <span class="driver-code">${q.Driver?.code || '—'}</span>
+          <span class="driver-name">${q.Driver?.givenName} ${q.Driver?.familyName}</span>
+        </div></td>
+        <td>${q.Constructor?.name || '—'}</td>
+        <td class="col-time"><span class="${q.position === '1' ? 'time-best' : (q.Q1 ? 'time-val' : 'time-empty')}">${q.Q1 || '—'}</span></td>
+        <td class="col-time"><span class="${q.Q2 ? 'time-val' : 'time-empty'}">${q.Q2 || '—'}</span></td>
+        <td class="col-time"><span class="${q.Q3 ? (q.position === '1' ? 'time-best' : 'time-val') : 'time-empty'}">${q.Q3 || '—'}</span></td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('SIRALAMA TURLARI', `${results.length} SÜRÜCÜ`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderPitStops() {
+  const eyebrow = document.getElementById('ps-eyebrow');
+  const tbody   = document.getElementById('pitBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
+
+  try {
+    const data  = await jolpiFetch(`/${appSeason}/${appRound}/pitstops.json?limit=100`);
+    const races = data.RaceTable?.Races || [];
+    if (!races.length) { tbody.innerHTML = emptyHTML('Bu tur için pit stop verisi bulunamadı.'); return; }
+
+    const race = races[0];
+    const stops = race.PitStops || [];
+
+    if (eyebrow) eyebrow.textContent = raceLabel(race);
+
+    tbody.innerHTML = stops.map(p => `
+      <tr>
+        <td class="col-pos">${p.stop}</td>
+        <td><div class="driver-cell">
+          <span class="driver-code">${(p.driverId || '').toUpperCase().slice(0,3)}</span>
+          <span class="driver-name">${p.driverId || '—'}</span>
+        </div></td>
+        <td class="col-num">${p.lap}</td>
+        <td class="col-time"><span class="time-val">${p.duration}</span></td>
+        <td class="col-time"><span class="time-val">${p.time}</span></td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('PİT STOP ANALİZİ', `${stops.length} STOP`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderSchedule() {
+  const eyebrow = document.getElementById('sc-eyebrow');
+  const tbody   = document.getElementById('scheduleBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = loadingHTML();
+  setApiStatus('loading');
+
+  try {
+    const data  = await jolpiFetch(`/${appSeason}/races.json?limit=100`);
+    const races = data.RaceTable?.Races || [];
+
+    if (eyebrow) eyebrow.textContent = `${data.RaceTable?.season || appSeason} TAKVİM`;
+
+    tbody.innerHTML = races.map(r => `
+      <tr>
+        <td class="col-pos">${r.round}</td>
+        <td>${r.raceName}</td>
+        <td>${r.Circuit?.circuitName || '—'}</td>
+        <td>${r.Circuit?.Location?.country || '—'}</td>
+        <td class="col-time">${r.date || '—'}</td>
+      </tr>
+    `).join('');
+
+    setApiStatus('ok');
+    updateStatus('YARIŞ TAKVİMİ', `${races.length} YARIŞ`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+// ══════════════════════════════════════
+// LIVE RENDER FUNCTIONS (OpenF1)
+// ══════════════════════════════════════
+
+async function renderTimingTower() {
+  const eyebrow = document.getElementById('tt-eyebrow');
+  const subtitle = document.getElementById('tt-subtitle');
+  const tbody   = document.getElementById('timingBody');
+  if (!tbody) return;
+
+  if (!tbody.childElementCount) tbody.innerHTML = loadingHTML();
+
+  try {
+    // Get latest session
+    const sessions = await openf1Fetch('/sessions?session_key=latest');
+    if (!sessions.length) { tbody.innerHTML = emptyHTML('Aktif oturum bulunamadı.'); return; }
+    const session = sessions[sessions.length - 1];
+    const sk = session.session_key;
+
+    if (eyebrow)  eyebrow.textContent  = `CANLI · ${session.country_name || ''} GP`;
+    if (subtitle) subtitle.textContent = session.session_name || '';
+
+    // Parallel fetch: drivers, positions, intervals, laps
+    const [drivers, positions, intervals, stints] = await Promise.all([
+      openf1Fetch(`/drivers?session_key=${sk}`),
+      openf1Fetch(`/position?session_key=${sk}`),
+      openf1Fetch(`/intervals?session_key=${sk}`).catch(() => []),
+      openf1Fetch(`/stints?session_key=${sk}`).catch(() => []),
+    ]);
+
+    // Build driver map
+    const driverMap = {};
+    for (const d of drivers) driverMap[d.driver_number] = d;
+
+    // Latest position per driver
+    const posMap = {};
+    for (const p of positions) {
+      if (!posMap[p.driver_number] || p.date > posMap[p.driver_number].date)
+        posMap[p.driver_number] = p;
+    }
+
+    // Latest interval per driver
+    const intMap = {};
+    for (const iv of intervals) {
+      if (!intMap[iv.driver_number] || iv.date > intMap[iv.driver_number].date)
+        intMap[iv.driver_number] = iv;
+    }
+
+    // Latest stint per driver
+    const stintMap = {};
+    for (const s of stints) {
+      if (!stintMap[s.driver_number] || s.lap_start > (stintMap[s.driver_number].lap_start || 0))
+        stintMap[s.driver_number] = s;
+    }
+
+    // Sort by position
+    const sorted = Object.values(posMap).sort((a, b) => a.position - b.position);
+
+    if (!sorted.length) { tbody.innerHTML = emptyHTML('Pozisyon verisi yok.'); return; }
+
+    tbody.innerHTML = sorted.map(p => {
+      const d = driverMap[p.driver_number] || {};
+      const iv = intMap[p.driver_number] || {};
+      const st = stintMap[p.driver_number] || {};
+      const interval = iv.interval != null
+        ? (p.position === 1 ? 'LEADER' : `+${iv.interval?.toFixed(3)}`)
+        : '—';
+      const lastLap = iv.gap_to_leader != null ? `+${iv.gap_to_leader?.toFixed(3)}` : '—';
+      const tire = st.compound ? st.compound[0] : '?';
+      const lapAge = st.lap_start ? `${st.lap_start}` : '—';
+      return `
+        <tr>
+          <td class="col-pos"><span class="pos-badge ${posClass(p.position)}">${p.position}</span></td>
+          <td><div class="driver-cell">
+            <span class="driver-code">${d.name_acronym || p.driver_number}</span>
+            <span class="driver-name">${d.full_name || ''}</span>
+          </div></td>
+          <td>${d.team_name || '—'}</td>
+          <td class="col-time">${intervalHTML(interval)}</td>
+          <td class="col-time"><span class="time-val">${lastLap}</span></td>
+          <td>${tireHTML(tire)}</td>
+          <td class="col-num">${lapAge}</td>
+        </tr>
+      `;
+    }).join('');
+
+    setApiStatus('ok');
+    updateStatus('TİMİNG TOWER — CANLI', `${sorted.length} SÜRÜCÜ`);
+
+    // Weather
+    try {
+      const weather = await openf1Fetch(`/weather?session_key=${sk}`);
+      if (weather.length) {
+        const w = weather[weather.length - 1];
+        const condEl = document.getElementById('wCond');
+        const trackEl = document.getElementById('wTrack');
+        const airEl = document.getElementById('wAir');
+        const humEl = document.getElementById('wHumidity');
+        const windEl = document.getElementById('wWind');
+        if (condEl) condEl.textContent = w.rainfall ? '🌧 Yağmurlu' : '☀ Açık';
+        if (trackEl) trackEl.textContent = `${w.track_temperature?.toFixed(1)}°C`;
+        if (airEl) airEl.textContent = `${w.air_temperature?.toFixed(1)}°C`;
+        if (humEl) humEl.textContent = `${w.humidity?.toFixed(0)}%`;
+        if (windEl) windEl.textContent = `${w.wind_speed?.toFixed(1)} m/s`;
+      }
+    } catch(_) {}
+
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
+}
+
+async function renderRaceControl() {
+  const eyebrow  = document.getElementById('rc-eyebrow');
+  const subtitle = document.getElementById('rc-subtitle');
+  const feed     = document.getElementById('rcFeed');
+  if (!feed) return;
+
+  if (!feed.childElementCount) feed.innerHTML = loadingHTML();
+
+  try {
+    const sessions = await openf1Fetch('/sessions?session_key=latest');
+    if (!sessions.length) { feed.innerHTML = emptyHTML('Aktif oturum bulunamadı.'); return; }
+    const session = sessions[sessions.length - 1];
+    const sk = session.session_key;
+
+    if (eyebrow)  eyebrow.textContent  = `CANLI · ${session.country_name || ''} GP`;
+    if (subtitle) subtitle.textContent = session.session_name || '';
+
+    const messages = await openf1Fetch(`/race_control?session_key=${sk}`);
+    const sorted   = [...messages].reverse(); // newest first
+
+    feed.innerHTML = sorted.map(m => `
+      <div class="rc-entry">
+        <span class="rc-lap">LAP ${m.lap_number || '—'}</span>
+        ${rcTypeHTML(m.category || m.flag || 'INFO')}
+        <span class="rc-msg">${m.message || '—'}</span>
       </div>
-    </div>
-  `).join('');
-  updateStatus('SÜRÜCÜ KARŞILAŞTIRMASI', 'VER · NOR');
+    `).join('') || emptyHTML('Race control mesajı yok.');
+
+    setApiStatus('ok');
+    updateStatus('RACE CONTROL — CANLI', `${messages.length} MESAJ`);
+  } catch(e) {
+    feed.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
 }
 
-function renderTimingTower() {
-  const tbody = document.getElementById('timingBody');
-  tbody.innerHTML = LIVE_TIMING.map(d => `
-    <tr>
-      <td class="col-pos"><span class="pos-badge ${posClass(d.pos)}">${d.pos}</span></td>
-      <td><div class="driver-cell"><span class="driver-code">${d.code}</span><span class="driver-name">${d.name}</span></div></td>
-      <td class="col-time">${intervalHTML(d.interval)}</td>
-      <td class="col-time"><span class="${d.lastLap !== '---' ? 'time-val' : 'time-empty'}">${d.lastLap}</span></td>
-      <td>${tireHTML(d.tire)}</td>
-      <td class="col-num">${d.lap}</td>
-    </tr>
-  `).join('');
-  updateStatus('TİMİNG TOWER — CANLI', `${LIVE_TIMING.length} SÜRÜCÜ · LAP 38/71`);
+async function renderPitTracker() {
+  const eyebrow  = document.getElementById('pt-eyebrow');
+  const subtitle = document.getElementById('pt-subtitle');
+  const tbody    = document.getElementById('pitTrackerBody');
+  if (!tbody) return;
+
+  if (!tbody.childElementCount) tbody.innerHTML = loadingHTML();
+
+  try {
+    const sessions = await openf1Fetch('/sessions?session_key=latest');
+    if (!sessions.length) { tbody.innerHTML = emptyHTML('Aktif oturum bulunamadı.'); return; }
+    const session = sessions[sessions.length - 1];
+    const sk = session.session_key;
+
+    if (eyebrow)  eyebrow.textContent  = `CANLI · ${session.country_name || ''} GP`;
+    if (subtitle) subtitle.textContent = session.session_name || '';
+
+    const [pits, drivers] = await Promise.all([
+      openf1Fetch(`/pit?session_key=${sk}`),
+      openf1Fetch(`/drivers?session_key=${sk}`),
+    ]);
+
+    const driverMap = {};
+    for (const d of drivers) driverMap[d.driver_number] = d;
+
+    const recent = [...pits].reverse().slice(0, 30);
+
+    tbody.innerHTML = recent.map(p => {
+      const d = driverMap[p.driver_number] || {};
+      return `
+        <tr>
+          <td><div class="driver-cell">
+            <span class="driver-code">${d.name_acronym || p.driver_number}</span>
+            <span class="driver-name">${d.full_name || ''}</span>
+          </div></td>
+          <td>${d.team_name || '—'}</td>
+          <td class="col-num">${p.lap_number || '—'}</td>
+          <td class="col-time"><span class="time-val">${p.pit_duration ? p.pit_duration.toFixed(1)+'s' : '—'}</span></td>
+          <td>—</td>
+          <td class="col-num">—</td>
+        </tr>
+      `;
+    }).join('') || emptyHTML('Pit stop verisi yok.');
+
+    setApiStatus('ok');
+    updateStatus('PİT TAKİP — CANLI', `${pits.length} PİT`);
+  } catch(e) {
+    tbody.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
 }
 
-function renderRaceControl() {
-  const feed = document.getElementById('rcFeed');
-  feed.innerHTML = RC_MESSAGES.map(m => `
-    <div class="rc-entry">
-      <span class="rc-lap">LAP ${m.lap}</span>
-      ${rcTypeHTML(m.type)}
-      <span class="rc-msg">${m.msg}</span>
-    </div>
-  `).join('');
-  updateStatus('RACE CONTROL — CANLI', `${RC_MESSAGES.length} MESAJ`);
+async function loadCarComparison() {
+  const d1Input = document.getElementById('d1Input');
+  const d2Input = document.getElementById('d2Input');
+  const body    = document.getElementById('cc-body');
+  if (!body) return;
+
+  const n1 = parseInt(d1Input?.value || '1');
+  const n2 = parseInt(d2Input?.value || '4');
+
+  body.innerHTML = loadingHTML('Araç verisi yükleniyor...');
+  setApiStatus('loading');
+
+  try {
+    const sessions = await openf1Fetch('/sessions?session_key=latest');
+    if (!sessions.length) { body.innerHTML = emptyHTML('Aktif oturum bulunamadı.'); return; }
+    const session = sessions[sessions.length - 1];
+    const sk = session.session_key;
+
+    const eyebrow  = document.getElementById('cc-eyebrow');
+    const subtitle = document.getElementById('cc-subtitle');
+    if (eyebrow)  eyebrow.textContent  = `CANLI · ${session.country_name || ''} GP`;
+    if (subtitle) subtitle.textContent = session.session_name || '';
+
+    const [driversData, car1Data, car2Data] = await Promise.all([
+      openf1Fetch(`/drivers?session_key=${sk}`),
+      openf1Fetch(`/car_data?session_key=${sk}&driver_number=${n1}`),
+      openf1Fetch(`/car_data?session_key=${sk}&driver_number=${n2}`),
+    ]);
+
+    const driverMap = {};
+    for (const d of driversData) driverMap[d.driver_number] = d;
+
+    // Driver hint chips
+    const hintEl = document.getElementById('cc-driver-list');
+    if (hintEl) {
+      hintEl.innerHTML = `<div class="driver-hint-grid">${driversData.map(d => `
+        <span class="driver-chip" onclick="document.getElementById('d1Input').value='${d.driver_number}'">
+          <span class="chip-num">${d.driver_number}</span>${d.name_acronym}
+        </span>
+      `).join('')}</div>`;
+    }
+
+    const latest1 = car1Data.length ? car1Data[car1Data.length - 1] : null;
+    const latest2 = car2Data.length ? car2Data[car2Data.length - 1] : null;
+
+    function carCardHTML(num, carData) {
+      const d = driverMap[num] || {};
+      if (!carData) return `<div class="car-card">${errorHTML('Veri yok')}</div>`;
+      const throttle = carData.throttle ?? 0;
+      const brake    = carData.brake ?? 0;
+      const speed    = carData.speed ?? 0;
+      const gear     = carData.n_gear ?? 0;
+      const drs      = carData.drs >= 10;
+      return `
+        <div class="car-card">
+          <div class="car-header">
+            <div>
+              <div class="car-driver">${d.name_acronym || num} — ${d.full_name || ''}</div>
+              <div class="car-team">${d.team_name || '—'}</div>
+            </div>
+            <span class="drs-${drs ? 'on' : 'off'}">${drs ? '◉ DRS' : '○ DRS'}</span>
+          </div>
+          <div class="car-metrics">
+            <div class="metric-row">
+              <div class="metric-label">THROTTLE</div>
+              <div class="metric-value">${throttle}%</div>
+              <div class="metric-bar-bg"><div class="metric-bar-fill throttle" style="width:${throttle}%"></div></div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-label">FREN</div>
+              <div class="metric-value">${brake}%</div>
+              <div class="metric-bar-bg"><div class="metric-bar-fill brake" style="width:${brake}%"></div></div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-label">HIZ</div>
+              <div class="metric-value">${speed} km/s</div>
+              <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${(speed/380*100).toFixed(1)}%"></div></div>
+            </div>
+            <div class="metric-row">
+              <div class="metric-label">VİTES</div>
+              <div class="metric-value">${gear}</div>
+              <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${gear/8*100}%"></div></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    body.innerHTML = carCardHTML(n1, latest1) + carCardHTML(n2, latest2);
+    setApiStatus('ok');
+    updateStatus('ARAÇ KARŞILAŞTIRMA — CANLI', `${driverMap[n1]?.name_acronym || n1} · ${driverMap[n2]?.name_acronym || n2}`);
+  } catch(e) {
+    body.innerHTML = errorHTML(e.message);
+    setApiStatus('err');
+  }
 }
 
-function renderPitTracker() {
-  const tbody = document.getElementById('pitTrackerBody');
-  tbody.innerHTML = PIT_TRACKER.map(p => `
-    <tr>
-      <td><div class="driver-cell"><span class="driver-code">${p.code}</span><span class="driver-name">${p.name}</span></div></td>
-      <td class="col-num">${p.lap}</td>
-      <td class="col-time"><span class="time-val">${p.dur}</span></td>
-      <td>${tireHTML(p.tire)}</td>
-      <td>${tireHTML(p.prev)}</td>
-    </tr>
-  `).join('');
-  updateStatus('PİT TAKİP — CANLI', `${PIT_TRACKER.length} PİT`);
-}
-
-function renderCarComparison() {
-  const grid = document.getElementById('carCompareGrid');
-  const cars = [
-    { code:'NOR', name:'Lando Norris', team:'McLaren', throttle:94, brake:12, speed:318, gear:8, drs:true },
-    { code:'VER', name:'Max Verstappen', team:'Red Bull Racing', throttle:89, brake:18, speed:312, gear:7, drs:true },
-  ];
-  grid.innerHTML = cars.map(c => `
-    <div class="car-card">
-      <div class="car-header">
-        <div>
-          <div class="car-driver">${c.code} — ${c.name}</div>
-          <div class="car-team">${c.team}</div>
-        </div>
-        <span class="drs-${c.drs ? 'on' : 'off'}">${c.drs ? '◉ DRS' : '○ DRS'}</span>
-      </div>
-      <div class="car-metrics">
-        <div class="metric-row">
-          <div class="metric-label">THROTTLE</div>
-          <div class="metric-value">${c.throttle}%</div>
-          <div class="metric-bar-bg"><div class="metric-bar-fill throttle" style="width:${c.throttle}%"></div></div>
-        </div>
-        <div class="metric-row">
-          <div class="metric-label">FREN</div>
-          <div class="metric-value">${c.brake}%</div>
-          <div class="metric-bar-bg"><div class="metric-bar-fill brake" style="width:${c.brake}%"></div></div>
-        </div>
-        <div class="metric-row">
-          <div class="metric-label">HIZ</div>
-          <div class="metric-value">${c.speed} km/s</div>
-          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${(c.speed/380*100).toFixed(1)}%"></div></div>
-        </div>
-        <div class="metric-row">
-          <div class="metric-label">VİTES</div>
-          <div class="metric-value">${c.gear}</div>
-          <div class="metric-bar-bg"><div class="metric-bar-fill" style="width:${c.gear/8*100}%"></div></div>
-        </div>
-      </div>
-    </div>
-  `).join('');
-  updateStatus('ARAÇ KARŞILAŞTIRMA — CANLI', 'NOR · VER');
+async function renderCarComparison() {
+  await loadCarComparison();
 }
 
 // ══════════════════════════════════════
@@ -460,7 +702,7 @@ const VIEW_RENDERERS = {
   'constructor-standings': renderConstructorStandings,
   'qualifying':            renderQualifying,
   'pit-stops':             renderPitStops,
-  'driver-compare':        renderDriverCompare,
+  'schedule':              renderSchedule,
   'timing-tower':          renderTimingTower,
   'race-control':          renderRaceControl,
   'pit-tracker':           renderPitTracker,
@@ -468,33 +710,27 @@ const VIEW_RENDERERS = {
 };
 
 function showView(viewId) {
-  // hide all views
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  // show target
   const target = document.getElementById(`view-${viewId}`);
   if (target) target.classList.add('active');
 
-  // update nav
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector(`[onclick="showView('${viewId}')"]`);
   if (btn) btn.classList.add('active');
 
   currentView = viewId;
 
-  // stop any existing interval
   if (liveInterval) { clearInterval(liveInterval); liveInterval = null; }
 
-  // render
   const renderer = VIEW_RENDERERS[viewId];
   if (renderer) renderer();
 
-  // start live updates for live views
-  if (['timing-tower','race-control','pit-tracker','car-comparison'].includes(viewId)) {
-    liveInterval = setInterval(() => {
-      if (renderer) renderer();
-    }, viewId === 'timing-tower' ? 4000 :
-       viewId === 'race-control' ? 3000 :
-       viewId === 'car-comparison' ? 2000 : 5000);
+  const liveViews = ['timing-tower', 'race-control', 'pit-tracker', 'car-comparison'];
+  if (liveViews.includes(viewId)) {
+    const interval = viewId === 'timing-tower' ? 5000
+                   : viewId === 'car-comparison' ? 3000
+                   : 8000;
+    liveInterval = setInterval(() => { if (renderer) renderer(); }, interval);
   }
 }
 
@@ -504,7 +740,7 @@ function setMode(mode) {
   document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
 
   const historicNav = document.getElementById('historicNav');
-  const liveNav = document.getElementById('liveNav');
+  const liveNav     = document.getElementById('liveNav');
 
   if (mode === 'historic') {
     historicNav.classList.remove('hidden');
@@ -517,23 +753,21 @@ function setMode(mode) {
   }
 }
 
-function updateSeason(val) {
-  document.getElementById('seasonBadge').textContent = val || '2024';
-}
-
-function updateStatus(view, count) {
-  document.getElementById('currentView').textContent = view;
-  document.getElementById('recordCount').textContent = count;
-}
-
-function refreshData() {
+function onSeasonChange(val) {
+  appSeason = val.trim() || 'current';
+  document.getElementById('seasonBadge').textContent = appSeason;
   const renderer = VIEW_RENDERERS[currentView];
-  if (renderer) {
-    renderer();
-  }
+  if (renderer) renderer();
+}
+
+function onRoundChange(val) {
+  appRound = val.trim() || 'last';
+  const renderer = VIEW_RENDERERS[currentView];
+  if (renderer) renderer();
 }
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', () => {
+  setApiStatus('loading');
   renderRaceResults();
 });
