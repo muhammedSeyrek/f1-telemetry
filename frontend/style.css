@@ -913,3 +913,91 @@ html, body {
   .car-compare-grid { grid-template-columns: 1fr; }
   .view { padding: 16px; }
 }
+
+/* ══════════════════════════════════════
+   STINT STRATEGY BARS
+══════════════════════════════════════ */
+.stint-row { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border); }
+.stint-row:last-child { border-bottom:none; }
+.stint-driver { width:180px; flex-shrink:0; }
+.stint-driver-name { font-size:11px; font-weight:600; color:var(--text-01); }
+.stint-driver-team { font-size:9px; color:var(--text-03); }
+.stint-bar { display:flex; flex:1; height:28px; gap:1px; }
+.stint-seg { display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; letter-spacing:0.5px; color:#000; min-width:24px; }
+.stint-seg.soft { background:var(--tire-soft); color:#fff; }
+.stint-seg.medium { background:var(--tire-medium); }
+.stint-seg.hard { background:var(--tire-hard); color:#000; }
+.stint-seg.intermediate { background:var(--tire-inter); color:#fff; }
+.stint-seg.wet { background:var(--tire-wet); color:#fff; }
+.stint-stops { width:60px; text-align:right; font-size:10px; color:var(--text-03); flex-shrink:0; }
+
+/* ══════════════════════════════════════
+   SECTOR ANALYSIS HIGHLIGHTS
+══════════════════════════════════════ */
+.sector-best { color:#be95ff !important; font-weight:700; text-shadow:0 0 6px rgba(190,149,255,0.4); }
+.sector-good { color:var(--green-hi); }
+.sector-slow { color:var(--red-hi); }
+
+/* ══════════════════════════════════════
+   LAP HISTORY CHART
+══════════════════════════════════════ */
+.lap-chart-area { border:1px solid var(--border); background:var(--surface-01); padding:16px; max-height:500px; overflow-y:auto; margin-bottom:16px; }
+.lap-chart-row { display:flex; align-items:center; gap:8px; padding:2px 0; font-size:10px; }
+.lap-chart-label { width:40px; text-align:right; color:var(--text-04); flex-shrink:0; }
+.lap-chart-bars { display:flex; gap:2px; flex:1; }
+.lap-chart-bar { height:14px; min-width:2px; border-radius:1px; position:relative; }
+.lap-chart-bar:hover { opacity:0.8; }
+.lap-chart-bar .tooltip { display:none; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:var(--surface-03); border:1px solid var(--border-hi); padding:2px 6px; font-size:9px; white-space:nowrap; z-index:10; }
+.lap-chart-bar:hover .tooltip { display:block; }
+
+/* ══════════════════════════════════════
+   GRID VS FINISH VISUAL BARS
+══════════════════════════════════════ */
+.change-bar { display:inline-flex; align-items:center; gap:4px; }
+.change-bar-fill { height:16px; min-width:2px; }
+.change-bar-fill.gain { background:var(--green); }
+.change-bar-fill.loss { background:var(--red); }
+.change-label { font-size:11px; font-weight:600; }
+.change-label.gain { color:var(--green-hi); }
+.change-label.loss { color:var(--red-hi); }
+.change-label.same { color:var(--text-04); }
+
+/* ══════════════════════════════════════
+   H2H COMPARISON CARDS
+══════════════════════════════════════ */
+.h2h-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px; }
+.h2h-card { border:1px solid var(--border); background:var(--surface-01); }
+.h2h-card-header { padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface-02); }
+.h2h-card-name { font-size:16px; font-weight:700; color:var(--text-01); }
+.h2h-card-team { font-size:10px; color:var(--text-03); margin-top:2px; }
+.h2h-card-stats { padding:16px 20px; display:flex; flex-direction:column; gap:10px; }
+.h2h-stat { display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.h2h-stat:last-child { border-bottom:none; padding-bottom:0; }
+.h2h-stat-label { font-size:10px; color:var(--text-04); letter-spacing:0.5px; }
+.h2h-stat-val { font-size:12px; font-weight:600; color:var(--text-01); }
+.h2h-stat-val.better { color:var(--green-hi); }
+.h2h-stat-val.worse { color:var(--red-hi); }
+.h2h-verdict { margin-top:20px; padding:14px 20px; border:1px solid var(--border); background:var(--surface-02); text-align:center; }
+.h2h-verdict-text { font-size:13px; font-weight:700; color:var(--gold); letter-spacing:1px; }
+
+/* ══════════════════════════════════════
+   STINT STRATEGY CONTAINER
+══════════════════════════════════════ */
+.stint-container { border:1px solid var(--border); background:var(--surface-01); }
+.stint-header { padding:10px 16px; background:var(--surface-02); border-bottom:1px solid var(--border); font-size:10px; font-weight:600; letter-spacing:1px; color:var(--text-03); }
+.stint-legend { display:flex; gap:16px; padding:10px 16px; border-bottom:1px solid var(--border); }
+.stint-legend-item { display:flex; align-items:center; gap:6px; font-size:10px; color:var(--text-03); }
+.stint-legend-dot { width:12px; height:12px; }
+.stint-legend-dot.soft { background:var(--tire-soft); }
+.stint-legend-dot.medium { background:var(--tire-medium); }
+.stint-legend-dot.hard { background:var(--tire-hard); }
+.stint-legend-dot.inter { background:var(--tire-inter); }
+.stint-legend-dot.wet { background:var(--tire-wet); }
+
+/* ══════════════════════════════════════
+   RESPONSIVE ADDITIONS
+══════════════════════════════════════ */
+@media (max-width: 900px) {
+  .h2h-grid { grid-template-columns:1fr; }
+  .stint-driver { width:100px; }
+}

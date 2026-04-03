@@ -89,6 +89,7 @@ func liveMenu() {
 	fmt.Println("  \033[36m[2]\033[0m  📻  Race Control     (SC, VSC, bayraklar)")
 	fmt.Println("  \033[36m[3]\033[0m  🔧  Pit Takip        (lastik + süre)")
 	fmt.Println("  \033[36m[4]\033[0m  📊  Araç Karşılaştır (throttle, fren, DRS)")
+	fmt.Println("  \033[36m[5]\033[0m  📈  Lastik Strateji  (stint analizi)")
 	fmt.Println("  \033[36m[b]\033[0m  ←   Geri")
 	fmt.Println()
 	fmt.Print("  Seçim: ")
@@ -113,6 +114,8 @@ func liveMenu() {
 		s.Scan()
 		d2 := strings.ToUpper(strings.TrimSpace(s.Text()))
 		live.CarComparison(liveClient, session, d1, d2)
+	case "5":
+		live.StintStrategy(liveClient, session)
 	case "b", "B":
 		mainMenu()
 		return
@@ -142,6 +145,7 @@ func historicMenu() {
 	fmt.Println("  \033[36m[5]\033[0m  Sürücü karşılaştırması")
 	fmt.Println("  \033[36m[6]\033[0m  Pit stop analizi")
 	fmt.Println("  \033[36m[7]\033[0m  Grid vs Finiş analizi")
+	fmt.Println("  \033[36m[8]\033[0m  Tur zamanları analizi")
 	fmt.Println("  \033[36m[b]\033[0m  ←  Geri")
 	fmt.Println()
 	fmt.Print("  Seçim: ")
@@ -277,6 +281,14 @@ func historicMenu() {
 		display.Qualifying(qr, race)
 		display.GridVsFinish(qr, rr, race)
 
+	case "8":
+		laps, err := client.GetAllLapTimes(season, round)
+		if err != nil {
+			display.Error(err.Error())
+			break
+		}
+		display.LapAnalysis(laps, season, round)
+
 	case "b", "B":
 		mainMenu()
 		return
@@ -298,7 +310,7 @@ func promptSeasonRound(choice string) (string, string) {
 	}
 
 	// Sadece bu seçenekler tur sorar
-	needsRound := map[string]bool{"1": false, "6": true, "7": true}
+	needsRound := map[string]bool{"1": false, "6": true, "7": true, "8": true}
 	if needsRound[choice] {
 		fmt.Print("  Tur (örn: 5, enter=last): ")
 		scanner.Scan()

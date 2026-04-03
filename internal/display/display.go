@@ -801,3 +801,57 @@ func sortInts(a []int) {
 		}
 	}
 }
+
+// ─────────────────────────────────────────────
+// TUR ANALİZİ
+// ─────────────────────────────────────────────
+
+func LapAnalysis(laps []models.Lap, season, round string) {
+	Header(fmt.Sprintf("Sezon %s Tur %s — Tur Analizi", season, round))
+
+	if len(laps) == 0 {
+		Error("Tur verisi bulunamadı")
+		return
+	}
+
+	SectionTitle(fmt.Sprintf("Toplam %d tur", len(laps)))
+	fmt.Printf("%-5s %-22s %-12s %s\n", "Tur", "En Hızlı Sürücü", "Zaman", "2. Sürücü")
+	fmt.Println(strings.Repeat("─", 55))
+
+	driverFastest := map[string]int{}
+
+	for _, lap := range laps {
+		if len(lap.Timings) == 0 {
+			continue
+		}
+		best := lap.Timings[0]
+		second := ""
+		if len(lap.Timings) > 1 {
+			second = lap.Timings[1].Time
+		}
+		driverFastest[best.DriverID]++
+		fmt.Printf("%-5s %-22s %-12s %s\n", lap.Number, best.DriverID, best.Time, second)
+	}
+
+	SectionTitle("En Çok En Hızlı Tur")
+	type dc struct {
+		id    string
+		count int
+	}
+	var counts []dc
+	for id, c := range driverFastest {
+		counts = append(counts, dc{id, c})
+	}
+	sort.Slice(counts, func(i, j int) bool { return counts[i].count > counts[j].count })
+
+	for i, d := range counts {
+		if i >= 10 {
+			break
+		}
+		color := Reset
+		if i == 0 {
+			color = Gold()
+		}
+		fmt.Printf("%s  %-22s %d tur%s\n", color, d.id, d.count, Reset)
+	}
+}

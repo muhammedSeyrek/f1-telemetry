@@ -177,6 +177,19 @@ func (c *Client) GetScheduleWithResults(season string) ([]models.Race, error) {
 	return allRaces, nil
 }
 
+// Tüm tur zamanları (paginated)
+func (c *Client) GetAllLapTimes(season, round string) ([]models.Lap, error) {
+	url := fmt.Sprintf("%s/%s/%s/laps.json?limit=1500", c.baseURL, season, round)
+	resp, err := c.fetch(url)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.MRData.RaceTable.Races) == 0 {
+		return nil, fmt.Errorf("tur verisi bulunamadı")
+	}
+	return resp.MRData.RaceTable.Races[0].Laps, nil
+}
+
 // Sürücünün tüm sezondaki sonuçları
 func (c *Client) GetDriverSeasonResults(season, driverID string) ([]models.Race, error) {
 	url := fmt.Sprintf("%s/%s/drivers/%s/results.json?limit=30", c.baseURL, season, driverID)

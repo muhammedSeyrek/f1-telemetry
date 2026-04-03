@@ -195,6 +195,28 @@ func (c *LiveClient) GetStints(sessionKey int) (map[int]models.LiveStint, error)
 	return latest, nil
 }
 
+// --- Tüm Stintler (gruplamadan) ---
+
+func (c *LiveClient) GetAllStints(sessionKey int) ([]models.LiveStint, error) {
+	body, err := c.fetchLive(fmt.Sprintf("stints?session_key=%d", sessionKey))
+	if err != nil {
+		return nil, err
+	}
+	var stints []models.LiveStint
+	return stints, json.Unmarshal(body, &stints)
+}
+
+// --- Tüm Tur Zamanları (gruplamadan) ---
+
+func (c *LiveClient) GetAllLaps(sessionKey int) ([]models.LiveLap, error) {
+	body, err := c.fetchLive(fmt.Sprintf("laps?session_key=%d", sessionKey))
+	if err != nil {
+		return nil, err
+	}
+	var laps []models.LiveLap
+	return laps, json.Unmarshal(body, &laps)
+}
+
 // --- Race Control ---
 
 func (c *LiveClient) GetRaceControl(sessionKey int) ([]models.RaceControlMsg, error) {

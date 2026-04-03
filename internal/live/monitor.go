@@ -547,3 +547,103 @@ func joinStr(ss []string, sep string) string {
 	}
 	return result
 }
+
+// ─────────────────────────────────────────────
+// LASTİK STRATEJİ
+// ─────────────────────────────────────────────
+
+func StintStrategy(client *api.LiveClient, session *models.LiveSession) {
+	fmt.Printf("\n\033[36m📈 Lastik Strateji başlatılıyor... (CTRL+C ile çık)\033[0m\n")
+	time.Sleep(1 * time.Second)
+
+	exit := waitForExit()
+
+	compColor := map[string]string{
+		"SOFT": "\033[41m\033[97m", "MEDIUM": "\033[43m\033[30m",
+		"HARD": "\033[47m\033[30m", "INTERMEDIATE": "\033[42m\033[97m",
+		"WET": "\033[44m\033[97m",
+	}
+
+	for {
+		select {
+		case <-exit:
+			fmt.Println("\n\033[33m👋 Lastik Strateji kapatıldı.\033[0m")
+			return
+		default:
+		}
+
+		drivers, _ := client.GetDrivers(session.SessionKey)
+		dMap := map[int]models.LiveDriver{}
+		for _, d := range drivers {
+			dMap[d.DriverNumber] = d
+		}
+
+		allStints, err := client.GetAllStints(session.SessionKey)
+		if err != nil {
+			display.Error("Stint verisi alınamadı")
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		positions, _ := client.GetLatestPositions(session.SessionKey)
+
+		driverStints := map[int][]models.LiveStint{}
+		for _, s := range allStints {
+			driverStints[s.DriverNumber] = append(driverStints[s.DriverNumber], s)
+		}
+
+		type entry struct {
+			num, pos int
+		}
+		var sorted []entry
+		for num := range driverStints {
+			pos := 99
+			if p, ok := positions[num]; ok {
+				pos = p.Position
+			}
+			sorted = append(sorted, entry{num, pos})
+		}
+		sort.Slice(sorted, func(i, j int) bool { return sorted[i].pos < sorted[j].pos })
+
+		clearScreen()
+		fmt.Printf("\033[1m\033[36m📈 Lastik Strateji — %s %s\033[0m\n", session.CountryName, session.SessionName)
+		fmt.Println("\033[36m" + repeat("═", 80) + "\033[0m")
+		fmt.Printf("\n%-4s %-18s %-44s %s\n", "Pos", "Sürücü", "Stint Haritası", "Stop")
+		fmt.Println(repeat("─", 80))
+
+		for _, e := range sorted {
+			d := dMap[e.num]
+			stints := driverStints[e.num]
+			bar := ""
+			for _, s := range stints {
+				c := compColor[s.Compound]
+				if c == "" {
+					c = "\033[90m"
+				}
+				laps := s.LapEnd - s.LapStart + 1
+				if laps < 1 {
+					laps = 1
+				}
+				label := " "
+				if len(s.Compound) > 0 {
+					label = s.Compound[:1]
+				}
+				w := laps
+				if w > 20 {
+					w = 20
+				}
+				seg := c + " " + label
+				for i := 0; i < w; i++ {
+					seg += "█"
+				}
+				seg += " \033[0m"
+				bar += seg
+			}
+			fmt.Printf("%-4d %-18s %s  %d\n", e.pos, d.NameAcronym+" "+shortName(d.FullName), bar, len(stints)-1)
+		}
+
+		fmt.Printf("\n\033[90m  🔴 SOFT  🟡 MED  ⚪ HARD  🟢 INT  🔵 WET\033[0m\n")
+		fmt.Printf("\n\033[90m⟳ %s  |  CTRL+C ile çık\033[0m\n", time.Now().Format("15:04:05"))
+		time.Sleep(6 * time.Second)
+	}
+}

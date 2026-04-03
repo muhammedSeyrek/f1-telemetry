@@ -23,7 +23,7 @@
     <div class="topbar-center">
       <div class="mode-toggle">
         <button class="mode-btn active" data-mode="historic" onclick="setMode('historic')">
-          <span class="btn-icon">▶</span> GECMİS
+          <span class="btn-icon">▶</span> GECMIS
         </button>
         <button class="mode-btn" data-mode="live" onclick="setMode('live')">
           <span class="live-dot"></span> CANLI
@@ -33,7 +33,7 @@
     <div class="topbar-right">
       <div class="status-pill" id="apiStatus">
         <span class="status-dot yellow"></span>
-        <span id="apiStatusText">BAĞLANIYOR</span>
+        <span id="apiStatusText">BAGLANIYOR</span>
       </div>
       <div class="season-badge" id="seasonBadge">2024</div>
     </div>
@@ -45,7 +45,7 @@
     <!-- SIDEBAR -->
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-section" id="historicNav">
-        <div class="sidebar-label">GECMİS VERİLER</div>
+        <div class="sidebar-label">GECMIS VERILER</div>
         <button class="nav-item active" onclick="showView('race-results')">
           <span class="nav-icon">◈</span><span>Yaris Sonucu</span>
         </button>
@@ -67,6 +67,15 @@
         <button class="nav-item" onclick="showView('schedule')">
           <span class="nav-icon">◈</span><span>Yaris Takvimi</span>
         </button>
+        <button class="nav-item" onclick="showView('lap-analysis')">
+          <span class="nav-icon">◈</span><span>Tur Analizi</span>
+        </button>
+        <button class="nav-item" onclick="showView('grid-vs-finish')">
+          <span class="nav-icon">◈</span><span>Grid vs Finis</span>
+        </button>
+        <button class="nav-item" onclick="showView('driver-h2h')">
+          <span class="nav-icon">◈</span><span>Suruco Karsilastir</span>
+        </button>
       </div>
 
       <div class="sidebar-section hidden" id="liveNav">
@@ -83,6 +92,15 @@
         <button class="nav-item" onclick="showView('car-comparison')">
           <span class="nav-icon">◈</span><span>Arac Karsilastir</span>
         </button>
+        <button class="nav-item" onclick="showView('stint-strategy')">
+          <span class="nav-icon">◈</span><span>Lastik Strateji</span>
+        </button>
+        <button class="nav-item" onclick="showView('sector-analysis')">
+          <span class="nav-icon">◈</span><span>Sektor Analizi</span>
+        </button>
+        <button class="nav-item" onclick="showView('lap-history')">
+          <span class="nav-icon">◈</span><span>Tur Gecmisi</span>
+        </button>
       </div>
 
       <div class="sidebar-footer">
@@ -97,7 +115,7 @@
             placeholder="last" onchange="onRoundChange(this.value)" />
         </div>
         <div class="sidebar-meta">
-          <span class="meta-label">VERİ KAYNAĞI</span>
+          <span class="meta-label">VERI KAYNAGI</span>
           <span class="meta-value">Jolpica / OpenF1</span>
         </div>
       </div>
@@ -115,7 +133,7 @@
             <div class="view-subtitle" id="rr-subtitle"></div>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderRaceResults()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderRaceResults()">↺ YENILE</button>
           </div>
         </div>
         <div id="rr-body">
@@ -137,23 +155,23 @@
         <div class="view-header">
           <div class="view-title-block">
             <div class="view-eyebrow" id="sd-eyebrow">FORMULA 1</div>
-            <h1 class="view-title">SEZON OZETİ</h1>
+            <h1 class="view-title">SEZON OZETI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderSeasonDashboard()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderSeasonDashboard()">↺ YENILE</button>
           </div>
         </div>
         <div id="sd-body">
           <div class="dual-grid">
             <div class="panel">
-              <div class="panel-header"><span class="panel-title">SURUCO SİRALAMASI</span></div>
+              <div class="panel-header"><span class="panel-title">SURUCO SIRALAMASI</span></div>
               <table class="data-table compact">
                 <thead><tr><th>POS</th><th>SURUCO</th><th>TAKIM</th><th class="col-num">PUAN</th></tr></thead>
                 <tbody id="sdDriverBody"></tbody>
               </table>
             </div>
             <div class="panel">
-              <div class="panel-header"><span class="panel-title">KONSTRUKTOR SİRALAMASI</span></div>
+              <div class="panel-header"><span class="panel-title">KONSTRUKTOR SIRALAMASI</span></div>
               <table class="data-table compact">
                 <thead><tr><th>POS</th><th>TAKIM</th><th class="col-num">PUAN</th></tr></thead>
                 <tbody id="sdConstructorBody"></tbody>
@@ -167,11 +185,11 @@
       <section class="view" id="view-driver-standings">
         <div class="view-header">
           <div class="view-title-block">
-            <div class="view-eyebrow" id="ds-eyebrow">SAMPİYONLUK</div>
-            <h1 class="view-title">SURUCO SİRALAMASI</h1>
+            <div class="view-eyebrow" id="ds-eyebrow">SAMPIYONLUK</div>
+            <h1 class="view-title">SURUCO SIRALAMASI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderDriverStandings()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderDriverStandings()">↺ YENILE</button>
           </div>
         </div>
         <div id="ds-body">
@@ -179,8 +197,8 @@
             <table class="data-table">
               <thead><tr>
                 <th class="col-pos">POS</th><th>SURUCO</th><th>KOD</th>
-                <th>TAKIM</th><th>MİLLİYET</th>
-                <th class="col-num">PUAN</th><th class="col-num">GALİBİYET</th>
+                <th>TAKIM</th><th>MILLIYET</th>
+                <th class="col-num">PUAN</th><th class="col-num">GALIBIYET</th>
               </tr></thead>
               <tbody id="driverStandingsBody"></tbody>
             </table>
@@ -192,19 +210,19 @@
       <section class="view" id="view-constructor-standings">
         <div class="view-header">
           <div class="view-title-block">
-            <div class="view-eyebrow" id="cs-eyebrow">SAMPİYONLUK</div>
-            <h1 class="view-title">KONSTRUKTOR SİRALAMASI</h1>
+            <div class="view-eyebrow" id="cs-eyebrow">SAMPIYONLUK</div>
+            <h1 class="view-title">KONSTRUKTOR SIRALAMASI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderConstructorStandings()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderConstructorStandings()">↺ YENILE</button>
           </div>
         </div>
         <div id="cs-body">
           <div class="table-container">
             <table class="data-table">
               <thead><tr>
-                <th class="col-pos">POS</th><th>TAKIM</th><th>MİLLİYET</th>
-                <th class="col-num">PUAN</th><th class="col-num">GALİBİYET</th>
+                <th class="col-pos">POS</th><th>TAKIM</th><th>MILLIYET</th>
+                <th class="col-num">PUAN</th><th class="col-num">GALIBIYET</th>
               </tr></thead>
               <tbody id="constructorBody"></tbody>
             </table>
@@ -220,7 +238,7 @@
             <h1 class="view-title">SIRALAMA TURLARI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderQualifying()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderQualifying()">↺ YENILE</button>
           </div>
         </div>
         <div id="qr-body">
@@ -241,10 +259,10 @@
         <div class="view-header">
           <div class="view-title-block">
             <div class="view-eyebrow" id="ps-eyebrow">—</div>
-            <h1 class="view-title">PİT STOP ANALİZİ</h1>
+            <h1 class="view-title">PIT STOP ANALIZI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderPitStops()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderPitStops()">↺ YENILE</button>
           </div>
         </div>
         <div id="ps-body">
@@ -265,11 +283,11 @@
       <section class="view" id="view-schedule">
         <div class="view-header">
           <div class="view-title-block">
-            <div class="view-eyebrow" id="sc-eyebrow">TAKVİM</div>
-            <h1 class="view-title">YARIS TAKVİMİ</h1>
+            <div class="view-eyebrow" id="sc-eyebrow">TAKVIM</div>
+            <h1 class="view-title">YARIS TAKVIMI</h1>
           </div>
           <div class="view-controls">
-            <button class="ctrl-btn" onclick="renderSchedule()">↺ YENİLE</button>
+            <button class="ctrl-btn" onclick="renderSchedule()">↺ YENILE</button>
           </div>
         </div>
         <div id="sc-body">
@@ -277,7 +295,7 @@
             <table class="data-table">
               <thead><tr>
                 <th class="col-pos">TUR</th><th>YARIS</th>
-                <th>PIST</th><th>ULKE</th><th>TARİH</th>
+                <th>PIST</th><th>ULKE</th><th>TARIH</th>
               </tr></thead>
               <tbody id="scheduleBody"></tbody>
             </table>
@@ -285,12 +303,103 @@
         </div>
       </section>
 
+      <!-- ── LAP ANALYSIS (NEW) ── -->
+      <section class="view" id="view-lap-analysis">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="la-eyebrow">—</div>
+            <h1 class="view-title">TUR ANALIZI</h1>
+            <div class="view-subtitle">Tur tur surucu karsilastirmasi — en hizli turlari analiz et</div>
+          </div>
+          <div class="view-controls">
+            <button class="ctrl-btn" onclick="renderLapAnalysis()">↺ YENILE</button>
+          </div>
+        </div>
+        <!-- KPI summary -->
+        <div class="kpi-grid" id="la-kpi"></div>
+        <!-- fastest per lap table -->
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-header"><span class="panel-title">HER TURDA EN HIZLI SURUCO</span></div>
+          <div class="table-container" style="max-height:400px;overflow-y:auto">
+            <table class="data-table compact">
+              <thead><tr>
+                <th class="col-pos">TUR</th><th>SURUCO</th><th class="col-time">ZAMAN</th><th class="col-time">FARK</th>
+              </tr></thead>
+              <tbody id="laFastestBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- all laps table -->
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">TUM TUR ZAMANLARI</span></div>
+          <div class="table-container" style="max-height:500px;overflow-y:auto">
+            <table class="data-table compact">
+              <thead><tr>
+                <th class="col-pos">TUR</th><th>SURUCO</th><th class="col-pos">POS</th><th class="col-time">ZAMAN</th>
+              </tr></thead>
+              <tbody id="laAllBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── GRID VS FINISH (NEW) ── -->
+      <section class="view" id="view-grid-vs-finish">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="gf-eyebrow">—</div>
+            <h1 class="view-title">GRID VS FINIS</h1>
+            <div class="view-subtitle">Siralama pozisyonu ile yaris sonucunu karsilastir</div>
+          </div>
+          <div class="view-controls">
+            <button class="ctrl-btn" onclick="renderGridVsFinish()">↺ YENILE</button>
+          </div>
+        </div>
+        <div class="kpi-grid" id="gf-kpi"></div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr>
+              <th>SURUCO</th><th>TAKIM</th>
+              <th class="col-pos">GRID</th><th class="col-pos">FINIS</th>
+              <th class="col-num">DEGISIM</th><th>GORSELLESTIRME</th>
+            </tr></thead>
+            <tbody id="gfBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── DRIVER H2H (NEW) ── -->
+      <section class="view" id="view-driver-h2h">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="h2h-eyebrow">KARSILASTIRMA</div>
+            <h1 class="view-title">SURUCO KARSILASTIR</h1>
+            <div class="view-subtitle">Iki surucuyu bir yarista veya sezon boyunca karsilastir</div>
+          </div>
+        </div>
+        <!-- driver picker -->
+        <div class="driver-picker" id="h2hPicker">
+          <div class="picker-field">
+            <span class="meta-label">1. SURUCO (KOD)</span>
+            <input class="param-input" type="text" id="h2hD1" placeholder="VER" style="width:60px" />
+          </div>
+          <div class="picker-field">
+            <span class="meta-label">2. SURUCO (KOD)</span>
+            <input class="param-input" type="text" id="h2hD2" placeholder="NOR" style="width:60px" />
+          </div>
+          <button class="ctrl-btn" onclick="renderDriverH2H()">KARSILASTIR</button>
+        </div>
+        <div id="h2h-driver-list" style="margin-bottom:16px"></div>
+        <!-- results -->
+        <div id="h2h-body"></div>
+      </section>
+
       <!-- ── TIMING TOWER ── -->
       <section class="view" id="view-timing-tower">
         <div class="view-header">
           <div class="view-title-block">
             <div class="view-eyebrow" id="tt-eyebrow">CANLI</div>
-            <h1 class="view-title">TİMİNG TOWER</h1>
+            <h1 class="view-title">TIMING TOWER</h1>
             <div class="view-subtitle" id="tt-subtitle"></div>
           </div>
           <div class="view-controls">
@@ -299,7 +408,7 @@
         </div>
         <div class="weather-bar" id="weatherBar">
           <div class="weather-item"><span class="w-label">HAVA</span><span class="w-val" id="wCond">—</span></div>
-          <div class="weather-item"><span class="w-label">PİST</span><span class="w-val" id="wTrack">—</span></div>
+          <div class="weather-item"><span class="w-label">PIST</span><span class="w-val" id="wTrack">—</span></div>
           <div class="weather-item"><span class="w-label">HAVA SICAKL.</span><span class="w-val" id="wAir">—</span></div>
           <div class="weather-item"><span class="w-label">NEM</span><span class="w-val" id="wHumidity">—</span></div>
           <div class="weather-item"><span class="w-label">RUZGAR</span><span class="w-val" id="wWind">—</span></div>
@@ -310,7 +419,7 @@
               <thead><tr>
                 <th class="col-pos">POS</th><th>SURUCO</th><th>TAKIM</th>
                 <th class="col-time">ARALIK</th><th class="col-time">SON TUR</th>
-                <th>LASTİK</th><th class="col-num">TUR</th>
+                <th>LASTIK</th><th class="col-num">TUR</th>
               </tr></thead>
               <tbody id="timingBody"></tbody>
             </table>
@@ -340,7 +449,7 @@
         <div class="view-header">
           <div class="view-title-block">
             <div class="view-eyebrow" id="pt-eyebrow">CANLI</div>
-            <h1 class="view-title">PİT TAKİP</h1>
+            <h1 class="view-title">PIT TAKIP</h1>
             <div class="view-subtitle" id="pt-subtitle"></div>
           </div>
           <div class="view-controls">
@@ -353,7 +462,7 @@
               <thead><tr>
                 <th>SURUCO</th><th>TAKIM</th>
                 <th class="col-num">LAP</th><th class="col-time">SURE</th>
-                <th>LASTİK</th><th class="col-num">LAP YAS</th>
+                <th>LASTIK</th><th class="col-num">LAP YAS</th>
               </tr></thead>
               <tbody id="pitTrackerBody"></tbody>
             </table>
@@ -366,14 +475,13 @@
         <div class="view-header">
           <div class="view-title-block">
             <div class="view-eyebrow" id="cc-eyebrow">CANLI</div>
-            <h1 class="view-title">ARAC KARSİLASTİRMA</h1>
+            <h1 class="view-title">ARAC KARSILASTIRMA</h1>
             <div class="view-subtitle" id="cc-subtitle"></div>
           </div>
           <div class="view-controls">
             <div class="live-badge"><span class="live-dot-lg"></span>CANLI</div>
           </div>
         </div>
-        <!-- driver picker -->
         <div class="driver-picker" id="driverPicker">
           <div class="picker-field">
             <span class="meta-label">1. SURUCO NO</span>
@@ -385,9 +493,81 @@
           </div>
           <button class="ctrl-btn" onclick="loadCarComparison()">YUKLE</button>
         </div>
-        <!-- driver list hint -->
         <div id="cc-driver-list"></div>
         <div id="cc-body" class="car-compare-grid"></div>
+      </section>
+
+      <!-- ── STINT STRATEGY (NEW) ── -->
+      <section class="view" id="view-stint-strategy">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="ss-eyebrow">CANLI</div>
+            <h1 class="view-title">LASTIK STRATEJI</h1>
+            <div class="view-subtitle" id="ss-subtitle">Tum suruculerin lastik strateji haritasi</div>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge"><span class="live-dot-lg"></span>CANLI</div>
+          </div>
+        </div>
+        <div class="kpi-grid" id="ss-kpi"></div>
+        <div id="ss-body"></div>
+      </section>
+
+      <!-- ── SECTOR ANALYSIS (NEW) ── -->
+      <section class="view" id="view-sector-analysis">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="sa-eyebrow">CANLI</div>
+            <h1 class="view-title">SEKTOR ANALIZI</h1>
+            <div class="view-subtitle" id="sa-subtitle">Sektor sektor surucu performansi</div>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge"><span class="live-dot-lg"></span>CANLI</div>
+          </div>
+        </div>
+        <div class="kpi-grid" id="sa-kpi"></div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead><tr>
+              <th class="col-pos">POS</th><th>SURUCO</th><th>TAKIM</th>
+              <th class="col-time">S1</th><th class="col-time">S2</th><th class="col-time">S3</th>
+              <th class="col-time">TUR ZAMANI</th><th class="col-num">TUR NO</th>
+            </tr></thead>
+            <tbody id="sectorBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── LAP HISTORY (NEW) ── -->
+      <section class="view" id="view-lap-history">
+        <div class="view-header">
+          <div class="view-title-block">
+            <div class="view-eyebrow" id="lh-eyebrow">CANLI</div>
+            <h1 class="view-title">TUR GECMISI</h1>
+            <div class="view-subtitle" id="lh-subtitle">Tur tur zaman evrimi — lastik degradasyonu ve strateji analizi</div>
+          </div>
+          <div class="view-controls">
+            <div class="live-badge"><span class="live-dot-lg"></span>CANLI</div>
+          </div>
+        </div>
+        <div class="driver-picker">
+          <div class="picker-field">
+            <span class="meta-label">SURUCO NO (opsiyonel, bos = top 5)</span>
+            <input class="param-input" type="text" id="lhDriverInput" placeholder="1,4,44" style="width:120px" />
+          </div>
+          <button class="ctrl-btn" onclick="renderLapHistory()">YUKLE</button>
+        </div>
+        <div class="kpi-grid" id="lh-kpi"></div>
+        <div id="lh-chart" class="lap-chart-area"></div>
+        <div class="table-container" style="margin-top:16px">
+          <table class="data-table compact">
+            <thead><tr>
+              <th class="col-pos">TUR</th>
+              <th id="lhDriverHeaders"></th>
+            </tr></thead>
+            <tbody id="lhBody"></tbody>
+          </table>
+        </div>
       </section>
 
     </main>
@@ -404,7 +584,7 @@
       <span class="blink-cursor">█</span>
     </div>
     <div class="statusbar-right">
-      <span>F1 TELEMETRİ</span>
+      <span>F1 TELEMETRI</span>
       <span class="sep">·</span>
       <span id="lastUpdated">—</span>
     </div>
